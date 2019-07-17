@@ -5,9 +5,9 @@ class Constants:
     
     def __init__(self, k):
         self.coherence_matrix = np.random.rand(2**k,k)
-        self.tow_distr = self.__set_tow_distr()
+        self.tau_distr = self.__set_tau_distr()
     
-    def __set_tow_distr(self):
+    def __set_tau_distr(self):
         # https://stackoverflow.com/a/28013759/5916727
     
         lower = 0
@@ -21,8 +21,8 @@ class Constants:
         
         return samples
     
-    def get_tow_distr(self):
-        return self.tow_distr
+    def get_tau_distr(self):
+        return self.tau_distr
 
 
     def get_coh_matrix(self):

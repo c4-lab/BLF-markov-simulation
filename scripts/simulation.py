@@ -4,10 +4,10 @@ import AgentClass
 import const
 import random
 
-def create_environment(knowledge_space_bits, number_of_agents, tow_distr, list_agents):
+def create_environment(knowledge_space_bits, number_of_agents, tau_distr, list_agents):
     for i in range(number_of_agents):
         in_state = np.random.randint(2, size=knowledge_space_bits).tolist()
-        a = AgentClass.Agent(name='agent{}'.format(i), tow=random.choice(tow_distr), initial_state=in_state) 
+        a = AgentClass.Agent(name='agent{}'.format(i), tau=random.choice(tau_distr), initial_state=in_state)
         list_agents.append(a)
         
     # make random connections with agents
@@ -57,12 +57,12 @@ if __name__ == '__main__':
     alpha = 0.5
     
     constants = const.Constants(knowledge_bits)
-    tow_distribution = constants.get_tow_distr()
+    tau_distribution = constants.get_tau_distr()
     coherence_matrix = constants.get_coh_matrix() 
     record_df = pd.DataFrame({'Agent_Name':[], 'Agent_Dissonance':[], 'Time':[], 'Current_Knowledge_State':[], 'Next_Knowledge_State':[]})
 
     # first create environment
-    create_environment(knowledge_bits, num_agents, tow_distribution, agents_list)
+    create_environment(knowledge_bits, num_agents, tau_distribution, agents_list)
     
     # get network of the agents
     agent_network_df = get_network_df(agents_list) 

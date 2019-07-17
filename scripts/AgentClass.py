@@ -5,10 +5,10 @@ from scipy.stats import logistic
 
 class Agent:
     
-    def __init__(self, name='', tow=-1, knowledge_dim = 3, initial_state=None):
+    def __init__(self, name='', tau=-1, knowledge_dim = 3, initial_state=None):
         self.neighbors = {} # neighbors will also be dictionary of agents
         self.name = name
-        self.tow = tow # agent's threshold defined in initialization
+        self.tau = tau # agent's threshold defined in initialization
         
         if initial_state: # if provided with initial knowledge state
             if isinstance(initial_state, list):
@@ -51,14 +51,14 @@ class Agent:
         for index, curr_bit_state in enumerate(self.knowledge_state):
             # now look for neighbors who agree in this bit value
             # TODO THis needs to be dissimilarity, not similarity
-            neigh_agreement_count = self.count_neigbors_adapted_knowledge(index)
+            neigh_agreement_count = self.count_dissimilar_neighbors(index)
             
             # compute d as (# of neighbors agree on bit/# of neighbors)
             if len(self.neighbors) > 0:
                 d = neigh_agreement_count/len(self.neighbors)
             else:
                 d = 0
-            dissonance = logistic.cdf(d-self.tow)
+            dissonance = logistic.cdf(d-self.tau)
             dissonance_list.append(dissonance)
         
         for i in range(len(dissonance_list)):
@@ -73,10 +73,10 @@ class Agent:
         self.next_state = next_state
         self.dissonance_lst = dissonance_list
     
-    def count_neigbors_adapted_knowledge(self, kbit):
+    def count_dissimilar_neighbors(self, kbit):
         count = 0
         for name, agent in self.neighbors.items():
-            if agent.knowledge_state[kbit] == self.knowledge_state[kbit]:
+            if agent.knowledge_state[kbit] != self.knowledge_state[kbit]:
                 count += 1
                 
         return count
