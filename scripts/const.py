@@ -1,7 +1,11 @@
 import numpy as np
 import scipy.stats as stats
 
+shape = 8
+
 class Constants:
+
+
     
     def __init__(self, k):
         self.coherence_matrix = np.random.rand(2**k,k)

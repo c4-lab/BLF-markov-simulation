@@ -1,5 +1,6 @@
 """Each agent has coherence matrix and neighbors which are agents as well"""
 import utilities
+import const
 import numpy as np
 from scipy.stats import logistic
 
@@ -49,16 +50,16 @@ class Agent:
         dissonance_list = []
         next_state = []
         for index, curr_bit_state in enumerate(self.knowledge_state):
-            # now look for neighbors who agree in this bit value
-            # TODO THis needs to be dissimilarity, not similarity
-            neigh_agreement_count = self.count_dissimilar_neighbors(index)
+            # now look for neighbors who disagree in this bit value
+
+            neigh_disagreement_count = self.count_dissimilar_neighbors(index)
             
             # compute d as (# of neighbors agree on bit/# of neighbors)
             if len(self.neighbors) > 0:
-                d = neigh_agreement_count/len(self.neighbors)
+                d = neigh_disagreement_count/len(self.neighbors)
             else:
                 d = 0
-            dissonance = logistic.cdf(d-self.tau)
+            dissonance = logistic.cdf(d,loc=self.tau,shape=const.shape)
             dissonance_list.append(dissonance)
         
         for i in range(len(dissonance_list)):
