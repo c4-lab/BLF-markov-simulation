@@ -9,6 +9,6 @@ def bool2int(x):
     return y
 
 
-def sigmoid(x):
-    # https://stackoverflow.com/questions/3985619/how-to-calculate-a-logistic-sigmoid-function-in-python
-    return 1 / (1 + math.exp(-x))
+def sigmoid(x, x_0, k=8):
+    # https://en.wikipedia.org/wiki/Logistic_function
+    return 1 / (1 + math.exp(-k*(x-x_0)))

@@ -1,33 +1,41 @@
 import numpy as np
 import scipy.stats as stats
+import random
 
-shape = 8
+from config import *
 
 class Constants:
 
 
-    
-    def __init__(self, k):
-        self.coherence_matrix = np.random.rand(2**k,k)
-        self.tau_distr = self.__set_tau_distr()
-    
-    def __set_tau_distr(self):
-        # https://stackoverflow.com/a/28013759/5916727
-    
-        lower = 0
-        upper = 1
-        mu = 0.5
-        sigma = 0.1
-        N = 1000
-        
-        samples = stats.truncnorm.rvs(
-          (lower-mu)/sigma,(upper-mu)/sigma,loc=mu,scale=sigma,size=N)
-        
-        return samples
-    
-    def get_tau_distr(self):
-        return self.tau_distr
+    def __init__(self):
+        np.random.seed(seed=seed_val[0])
+        random.seed(seed_val[0])
+
+        self.coherence_matrix = self.__set_coh_matrix(number_of_bits)
+
+
+    def __set_coh_matrix(self, k):
+
+        m = np.zeros((2**k,k))
+
+        for r_index, row in enumerate(m):
+            row_decay_vals = []
+            p_i_minus_1 = None
+            for c_index, col in enumerate(row):
+                if c_index == 0:
+                    p_i = random.uniform(coh_mat_min_value, coh_mat_max_value)
+                else:
+                    p_i = p_i_minus_1 /2
+
+                p_i_minus_1 = p_i
+                row_decay_vals.append(p_i)
+
+            random.shuffle(row_decay_vals)
+            m[r_index] = row_decay_vals
+
+        return m
 
 
     def get_coh_matrix(self):
         return self.coherence_matrix
+    
