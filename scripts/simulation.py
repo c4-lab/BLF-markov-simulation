@@ -54,7 +54,8 @@ def get_network_df(list_agents):
                                         'Neighbors':neighbors}, ignore_index=True)
     return network_df
 
-def run_simulation(alpha, coh_matrix, record_df, list_agents, end_time):
+def run_simulation(alpha, coh_matrix, list_agents, end_time):
+    d = []
     for t in range(end_time):
         # compute next state for all agents
         for agt in list_agents:
@@ -68,7 +69,7 @@ def run_simulation(alpha, coh_matrix, record_df, list_agents, end_time):
                    'Current_Knowledge_State':agt.knowledge_state,
                    'Next_Knowledge_State':agt.next_state}
 
-            record_df = record_df.append(row, ignore_index=True)
+            d.append(row)
 
         # now update all agents next state with computed next state
         for agt in list_agents:
@@ -76,7 +77,7 @@ def run_simulation(alpha, coh_matrix, record_df, list_agents, end_time):
             agt.next_state = None
             agt.dissonance_lst = None
 
-    return record_df
+    return pd.DataFrame(d)
 
 if __name__ == '__main__':
     # constants intialization
@@ -104,16 +105,17 @@ if __name__ == '__main__':
         coherence_matrix = constants.get_coh_matrix().tolist()
         results['coherence_matrix'] = coherence_matrix
 
-        record_df = pd.DataFrame({'Agent_Name':[], 'Agent_Dissonance':[], 'Time':[], 'Current_Knowledge_State':[], 'Next_Knowledge_State':[]})
 
         results['alphas'] = defaultdict(list)
 
         # run simulation
         for alpha in alphas:
+#            record_df = pd.DataFrame({'Agent_Name':[], 'Agent_Dissonance':[], 'Time':[], 'Current_Knowledge_State':[], 'Next_Knowledge_State':[]})
 
-            record_df = run_simulation(alpha, coherence_matrix, record_df, agents_list, end_simulation_time)
+            record_df = run_simulation(alpha, coherence_matrix, agents_list, end_simulation_time)
             results['alphas'][alpha].append(record_df.to_json(orient='records', lines=True))
 
 
-        with open('result.json', 'w') as fp:
+
+        with open('test_result.json', 'w') as fp:
             json.dump(results, fp, indent=4)
