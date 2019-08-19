@@ -6,7 +6,7 @@ coh_mat_max_value = 0.9
 
 
 # for Agents class
-global_local='local'
+contagion_mode='viral'
 scale = 0.8
 
 # other parameters
