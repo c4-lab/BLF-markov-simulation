@@ -201,3 +201,5 @@ outputs/
 .idea/
 *.iml
 
+/notebooks/simulations/
+/notebooks/simulations/test_result_7.json
