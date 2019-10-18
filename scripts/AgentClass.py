@@ -2,7 +2,7 @@
 import utilities
 import numpy as np
 from scipy.stats import logistic
-from config import global_local, scale
+from config import contagion_mode, scale
 import utilities
 
 class Agent:
@@ -62,10 +62,15 @@ class Agent:
                 d = 0
             # TODO: ask about the shape variable
 #            dissonance = logistic.cdf(d,loc=self.tau,shape=const.shape)
-
-            if d == 1 and global_local=='local':
+            # if all neighbors disagree in bit and mode is viral then we do not change
+            # bit as it will be set to np.nan which is later checked
+            
+            if d == 1 and contagion_mode =='viral':
                 dissonance = np.nan
-            else:
+            else: 
+                # this captures even if neighbors disagree and is not set to viral that means opinion based
+                # change in bit is also possible
+                # Also if some but not all disagreement is there then flipping of bit can be possible whether it is viral or opinion mode
                 dissonance = utilities.sigmoid(d, self.tau)
 
             dissonance_list.append(dissonance)
