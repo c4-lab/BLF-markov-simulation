@@ -2,16 +2,37 @@ import numpy as np
 import scipy.stats as stats
 import random
 
-from config import *
+import config
+import utilities
 
 class Constants:
 
 
-    def __init__(self):
-        np.random.seed(seed=seed_val[0])
-        random.seed(seed_val[0])
 
-        self.coherence_matrix = self.__set_coh_matrix(number_of_bits)
+
+    def __init__(self):
+        
+        np.random.seed(seed=config.seed_val[0])
+        random.seed(config.seed_val[0])
+
+        print("Woking with bits to flip: {} - {}".format(config.coh_mat_min_bits_to_flip,config.coh_mat_max_bits_to_flip))
+        #self.coherence_matrix = self.__set_coh_matrix(config.number_of_bits)
+        self.coh_transition_matrix = self.__set_clustered_transition_matrix(config.number_of_bits,config.alpha_d)
+        self.bit_matrix = self.__set_bit_matrix(config.number_of_bits)
+
+
+
+
+    def __set_clustered_transition_matrix(self, k, a_d):
+        """ Generates a transition matrix using a symmetric dirichlet"""
+        m = np.zeros((2**k,2**k))
+        #TODO generate coherence matrix
+
+
+    def __set_bit_matrix(self,k):
+        m = np.zeros((2**k,k))
+        for r_index, row in enumerate(m):
+            m[r_index] = utilities.int2bool(r_index,k)
 
 
     def __set_coh_matrix(self, k):
@@ -21,15 +42,17 @@ class Constants:
         for r_index, row in enumerate(m):
             row_decay_vals = []
             p_i_minus_1 = None
-            for c_index, col in enumerate(row):
+            bits_to_flip = random.randint(config.coh_mat_min_bits_to_flip,config.coh_mat_max_bits_to_flip)
+            for c_index in range(bits_to_flip):
                 if c_index == 0:
-                    p_i = random.uniform(coh_mat_min_value, coh_mat_max_value)
+                    p_i = random.uniform(config.coh_mat_min_value, config.coh_mat_max_value)
                 else:
                     p_i = p_i_minus_1 /2
 
                 p_i_minus_1 = p_i
                 row_decay_vals.append(p_i)
 
+            row_decay_vals+= [0]*(len(row)-bits_to_flip)
             random.shuffle(row_decay_vals)
             m[r_index] = row_decay_vals
 
@@ -38,4 +61,6 @@ class Constants:
 
     def get_coh_matrix(self):
         return self.coherence_matrix
-    
+
+
+

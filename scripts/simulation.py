@@ -54,12 +54,12 @@ def get_network_df(list_agents):
                                         'Neighbors':neighbors}, ignore_index=True)
     return network_df
 
-def run_simulation(alpha, coh_matrix, list_agents, end_time):
+def run_simulation(alpha, transition_matrix, list_agents, end_time):
     d = []
     for t in range(end_time):
         # compute next state for all agents
         for agt in list_agents:
-            agt.update_knowledge(alpha, coh_matrix)
+            agt.update_knowledge(alpha, transition_matrix)
 
         # keep record of current record and all other values
         for agt in list_agents:

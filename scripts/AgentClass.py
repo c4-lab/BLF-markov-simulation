@@ -1,9 +1,11 @@
 """Each agent has coherence matrix and neighbors which are agents as well"""
 import utilities
 import numpy as np
+import networkx
 from scipy.stats import logistic
-from config import contagion_mode, scale
+from config import contagion_mode, scale,number_of_bits
 import utilities
+from const import Constants
 
 class Agent:
 
@@ -42,54 +44,47 @@ class Agent:
             print('neighbor not found')
 
 
-    def update_knowledge(self, alpha, coherence_matrix):
-        """Takes alpha and coherence matrix"""
+    def update_knowledge(self, alpha, txn):
+        """Takes alpha and transition matrix (expects a 2d array)"""
         # first convert state binary to int to get the row in coherence matrix
         row_ptr = utilities.bool2int(self.knowledge_state)
         # get the corresponding probabilites from the matrix
-        prob_flip_bit = coherence_matrix[row_ptr]
+        coh_prob_tx = txn[row_ptr]
+        ones_list = np.zeros(number_of_bits)
         dissonance_list = []
-        next_state = []
+
         for index, curr_bit_state in enumerate(self.knowledge_state):
             # now look for neighbors who disagree in this bit value
 
             neigh_disagreement_count = self.count_dissimilar_neighbors(index)
 
-            # compute d as (# of neighbors agree on bit/# of neighbors)
+            # compute d as (# of neighbors disagree on bit/# of neighbors)
             if len(self.neighbors) > 0:
                 d = neigh_disagreement_count/len(self.neighbors)
             else:
                 d = 0
-            # TODO: ask about the shape variable
-#            dissonance = logistic.cdf(d,loc=self.tau,shape=const.shape)
-            # if all neighbors disagree in bit and mode is viral then we do not change
-            # bit as it will be set to np.nan which is later checked
-            
-            if d == 1 and contagion_mode =='viral':
-                dissonance = np.nan
-            else: 
-                # this captures even if neighbors disagree and is not set to viral that means opinion based
-                # change in bit is also possible
-                # Also if some but not all disagreement is there then flipping of bit can be possible whether it is viral or opinion mode
-                dissonance = utilities.sigmoid(d, self.tau)
 
+            #TODO: Handle the viral parameter - in general, if d = 0 and viral is set,
+            #TODO: it should not be possible to make that transition
+
+            dissonance = utilities.sigmoid(d, self.tau)
             dissonance_list.append(dissonance)
 
-        for i in range(len(dissonance_list)):
+            # transition probabilities given social pressure for moving to a state
+            # with a '1' at this bit
+            ones_list[index] = (1-dissonance if curr_bit_state else dissonance)
 
-            if np.isnan(dissonance_list[i]):
-                # this means global is set and none of the neighbors have that bit same
-                next_state.append(self.knowledge_state[i])
-            else:
-                flip_probability = alpha*dissonance_list[i] + (1-alpha)*prob_flip_bit[i]
-                rand_num = np.random.rand()
-                if flip_probability > rand_num:
-                    f  = 1^self.knowledge_state[i]
-                    next_state.append(f)
-                else:
-                    next_state.append(self.knowledge_state[i])
+        zeros_list = 1-ones_list
+        tmp_soc_mat = ones_list * Constants.bit_matrix + zeros_list * (1-Constants.bit_matrix)
 
-        self.next_state = next_state
+        # Probabilities for each state given social pressure
+        soc_prob_tx = np.prod(tmp_soc_mat,1)
+        #TODO logs soc_prob_tx for each agent at each time step
+
+
+        probs = alpha * soc_prob_tx + (1-alpha)*coh_prob_tx
+
+        self.next_state = utilities.int2bool(np.random.choice(range(number_of_bits**2),1,probs)[0])
         self.dissonance_lst = dissonance_list
 
     def count_dissimilar_neighbors(self, kbit):
