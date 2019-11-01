@@ -9,7 +9,11 @@ coh_mat_max_bits_to_flip = number_of_bits
 coh_mat_min_bits_to_flip = 0
 
 #Used to generate coherence transition matrix
-alpha_d = .003
+alpha_d = .003 # Symmetric dirichlet parameter for generating coherence matrix
+cliff = True   # Should we obey a min probability?
+min_prob = .001  # Min probability if cliff is True
+
+
 
 
 # for Agents class
@@ -18,3 +22,10 @@ scale = 0.8
 
 # other parameters
 num_agents = 100
+
+# for node2vec analysis
+n2v_window_size = 10
+n2v_workers = 8
+n2v_iter = 1
+n2v_num_walks = 10
+n2v_walk_length = 80

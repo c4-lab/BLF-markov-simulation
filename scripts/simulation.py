@@ -54,12 +54,13 @@ def get_network_df(list_agents):
                                         'Neighbors':neighbors}, ignore_index=True)
     return network_df
 
-def run_simulation(alpha, transition_matrix, list_agents, end_time):
+def run_simulation(alpha, const:const.Constants, list_agents, end_time):
     d = []
+    generations = 0
     for t in range(end_time):
         # compute next state for all agents
         for agt in list_agents:
-            agt.update_knowledge(alpha, transition_matrix)
+            agt.update_knowledge(alpha, const.coh_transition_matrix, const.bit_matrix)
 
         # keep record of current record and all other values
         for agt in list_agents:
@@ -77,12 +78,16 @@ def run_simulation(alpha, transition_matrix, list_agents, end_time):
             agt.next_state = None
             agt.dissonance_lst = None
 
+        generations+=1
+        if generations%10 == 0:
+            print("alpha = {}; {} generations".format(alpha,generations))
+
     return pd.DataFrame(d)
 
 if __name__ == '__main__':
     # constants intialization
-    end_simulation_time = 100
-    alphas = [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
+    end_simulation_time = 200
+    alphas = np.array(range(0,6))*.2
     exp_times = 1
 
     # first create environment
@@ -102,8 +107,8 @@ if __name__ == '__main__':
         results['seed'] = i
 
         constants = const.Constants()
-        coherence_matrix = constants.get_coh_matrix().tolist()
-        results['coherence_matrix'] = coherence_matrix
+
+        results['coherence_matrix'] = coherence_matrix = constants.get_coh_tx_matrix().tolist()
 
 
         results['alphas'] = defaultdict(list)
@@ -112,7 +117,7 @@ if __name__ == '__main__':
         for alpha in alphas:
 #            record_df = pd.DataFrame({'Agent_Name':[], 'Agent_Dissonance':[], 'Time':[], 'Current_Knowledge_State':[], 'Next_Knowledge_State':[]})
 
-            record_df = run_simulation(alpha, coherence_matrix, agents_list, end_simulation_time)
+            record_df = run_simulation(alpha, constants, agents_list, end_simulation_time)
             results['alphas'][alpha].append(record_df.to_json(orient='records', lines=True))
 
 

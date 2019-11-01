@@ -44,7 +44,7 @@ class Agent:
             print('neighbor not found')
 
 
-    def update_knowledge(self, alpha, txn):
+    def update_knowledge(self, alpha, txn, bit_matrix):
         """Takes alpha and transition matrix (expects a 2d array)"""
         # first convert state binary to int to get the row in coherence matrix
         row_ptr = utilities.bool2int(self.knowledge_state)
@@ -75,7 +75,7 @@ class Agent:
             ones_list[index] = (1-dissonance if curr_bit_state else dissonance)
 
         zeros_list = 1-ones_list
-        tmp_soc_mat = ones_list * Constants.bit_matrix + zeros_list * (1-Constants.bit_matrix)
+        tmp_soc_mat = ones_list * bit_matrix + zeros_list * (1-bit_matrix)
 
         # Probabilities for each state given social pressure
         soc_prob_tx = np.prod(tmp_soc_mat,1)
@@ -84,7 +84,7 @@ class Agent:
 
         probs = alpha * soc_prob_tx + (1-alpha)*coh_prob_tx
 
-        self.next_state = utilities.int2bool(np.random.choice(range(number_of_bits**2),1,probs)[0])
+        self.next_state = utilities.int2bool(np.random.choice(range(2**number_of_bits),1,p=probs)[0],number_of_bits)
         self.dissonance_lst = dissonance_list
 
     def count_dissimilar_neighbors(self, kbit):
