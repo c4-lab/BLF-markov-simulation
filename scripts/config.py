@@ -1,5 +1,6 @@
 # constants for creating coherence matrix 
-number_of_bits = 10
+number_of_bits = 2
+
 seed_val = [0]
 coh_mat_min_value = 0.5
 coh_mat_max_value = 0.9
@@ -21,7 +22,7 @@ contagion_mode='viral'
 scale = 0.8
 
 # other parameters
-num_agents = 100
+num_agents = 20
 
 # for node2vec analysis
 n2v_window_size = 10
