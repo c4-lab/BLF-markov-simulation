@@ -23,6 +23,7 @@ class Agent:
         self.next_state_probs = None
         self.next_state_onehot = None
         self.next_state = None
+        self.soc_probs = None
 
     def add_neighbors(self, neighbor_agent):
         """add neigbhor agent to the dictionary of neighbors
@@ -86,6 +87,7 @@ class Agent:
 
         probs = alpha * soc_prob_tx + (1-alpha)*coh_prob_tx
         self.next_state_probs = probs
+        self.soc_probs = soc_prob_tx
         self.next_state = utilities.int2bool(np.random.choice(range(2**number_of_bits),1,p=probs)[0],number_of_bits)
         self.dissonance_lst = dissonance_list
 
