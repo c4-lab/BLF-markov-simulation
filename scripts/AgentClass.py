@@ -24,6 +24,7 @@ class Agent:
         self.next_state_onehot = None
         self.next_state = None
         self.soc_probs = None
+        self.state_disagreements = None
 
     def add_neighbors(self, neighbor_agent):
         """add neigbhor agent to the dictionary of neighbors
@@ -55,7 +56,8 @@ class Agent:
         coh_prob_tx = txn[row_ptr]
         ones_list = np.zeros(number_of_bits)
         dissonance_list = []
-
+        disagreements = []
+        
         for index, curr_bit_state in enumerate(self.knowledge_state):
             # now look for neighbors who disagree in this bit value
 
@@ -72,7 +74,9 @@ class Agent:
 
             dissonance = utilities.sigmoid(d, self.tau)
             dissonance_list.append(dissonance)
-
+            
+            # keeping track of disagreement of bits/total neighbors
+            disagreements.append(d)
             # transition probabilities given social pressure for moving to a state
             # with a '1' at this bit
             ones_list[index] = (1-dissonance if curr_bit_state else dissonance)
@@ -83,14 +87,14 @@ class Agent:
         # Probabilities for each state given social pressure
         soc_prob_tx = np.prod(tmp_soc_mat,1)
         #TODO logs soc_prob_tx for each agent at each time step
-
-
+            
         probs = alpha * soc_prob_tx + (1-alpha)*coh_prob_tx
         self.next_state_probs = probs
         self.soc_probs = soc_prob_tx
         self.next_state = utilities.int2bool(np.random.choice(range(2**number_of_bits),1,p=probs)[0],number_of_bits)
         self.dissonance_lst = dissonance_list
-
+        self.state_disagreements = disagreements
+        
     def count_dissimilar_neighbors(self, kbit):
         count = 0
         for name, agent in self.neighbors.items():
