@@ -9,8 +9,8 @@ from gensim.models import Word2Vec
 
 results_file = "test_result.json"
 soc_network_file = "test_network.json"
-coh_network_file = "'coherence.edgelist'"
-embeddings_file = "coherence.emb"
+coh_network_file = "coherence.edgelist"
+embeddings_file = "_coherence.emb"
 
 
 def dump_coherence_matrix_to_edgelist(write = True):
@@ -47,7 +47,7 @@ def create_embedding(ndim=10,p = 1, q = 1,G = None):
         G = nx.read_edgelist(coh_network_file, nodetype=int, data=(('weight',float),), create_using=nx.DiGraph())
     G2 = node2vec.Graph(G, True, p, q)
     G2.preprocess_transition_probs()
-    walks = G.simulate_walks(config.n2v_num_walks, config.n2v_walk_length)
+    walks = G2.simulate_walks(config.n2v_num_walks, config.n2v_walk_length)
     learn_embeddings(walks,ndim)
 
 

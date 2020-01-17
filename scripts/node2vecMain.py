@@ -22,7 +22,7 @@ def parse_args():
 	parser.add_argument('--input', nargs='?', default='coherence.edgelist',
 						help='Input graph path')
 
-	parser.add_argument('--output', nargs='?', default='coherence.emb',
+	parser.add_argument('--output', nargs='?', default='_coherence.emb',
 						help='Embeddings path')
 
 	parser.add_argument('--dimensions', type=int, default=3,
