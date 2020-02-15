@@ -95,13 +95,18 @@ class Constants:
     def tx_bitblock_method(self):
         k = config.number_of_bits
         m = np.zeros((2**k,2**k))
+
+        #Find the largest weight?
         max_dist = k * (1+max(map(lambda x: x[1],config.attractors)))
         m_p = config.fa_max_prob
         m_f = config.fa_max_dist
         for r_index,row in enumerate(m):
             nrow = []
             for dest in range(2**k):
+                #hamming distance to the destination
                 dfrom = self.hamming(r_index,dest)
+
+                #distance between the destination and the nearest attractor
                 dto = min(map(lambda x: (x[1]+1)*self.hamming(x[0],dest),config.attractors))
                 p = max(0,(m_p - (dfrom * m_p/m_f))) * (1 - dto/max_dist)
                 nrow.append(p)
