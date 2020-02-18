@@ -16,6 +16,7 @@ class Agent:
 
         if initial_state: # if provided with initial knowledge state
             if isinstance(initial_state, list):
+                self.initial_state = initial_state
                 self.knowledge_state = initial_state
             else:
                 raise ValueError('list expected')
@@ -25,6 +26,11 @@ class Agent:
         self.next_state = None
         self.soc_probs = None
         self.state_disagreements = None
+
+    def reset_state(self,nstate = None):
+        if nstate is not None:
+            self.initial_state = nstate
+        self.knowledge_state = self.initial_state
 
     def add_neighbors(self, neighbor_agent):
         """add neigbhor agent to the dictionary of neighbors
