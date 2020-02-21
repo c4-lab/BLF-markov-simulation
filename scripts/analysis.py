@@ -5,7 +5,7 @@ import numpy as np
 import networkx as nx
 import node2vec
 import config
-# from gensim.models import Word2Vec
+from gensim.models import Word2Vec
 from scipy.special import softmax
 
 results_file = "test_result.json"
