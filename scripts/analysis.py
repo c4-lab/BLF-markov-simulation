@@ -6,6 +6,7 @@ import networkx as nx
 import node2vec
 import config
 from gensim.models import Word2Vec
+from scipy.special import softmax
 
 results_file = "test_result.json"
 soc_network_file = "test_network.json"
@@ -66,6 +67,43 @@ def init_coherence_matrix(nob,attractors,search_distance,inertial_weight=1,basel
     pd.DataFrame(coherence_matrix).to_csv("coherence_matrix.csv")
 
     return attrctr_space_mat,inertia_matrix,coherence_matrix
+
+
+def init_coherence_matrix_niraj(attractors, number_of_bits):
+    
+    attrctr_space_vec = np.zeros(2**number_of_bits)
+
+    for k, v in attractors.items():
+        attrctr_space_vec[k] = v['depth']
+        r = v['radius']
+        n = 2**number_of_bits
+        for j in range(2**number_of_bits):
+                diff = hamming(j, k)
+    #             diff = abs(j-k) ### Uncomment if needed to look into euclidean space
+                if diff <= r:
+                    attrctr_state_distance = (1-diff/v['radius'])*v['depth']
+                    attrctr_space_vec[j] = max(attrctr_space_vec[j], attrctr_state_distance)
+
+    attrctr_space_mat = np.tile(attrctr_space_vec, (2**number_of_bits, 1))
+        
+    
+    # create transition matrix
+    inertia_matrix = np.zeros((2**number_of_bits, 2**number_of_bits))
+
+    max_bits = 3 # maximum bits to for the transitions
+
+    for row_st, row in enumerate(inertia_matrix):
+        for col_st, col in enumerate(row):
+            bits_difference = hamming(row_st, col_st)
+            inertia_matrix[row_st, col_st] = (max_bits - min(max_bits, bits_difference))
+
+    
+    x = attrctr_space_mat*inertia_matrix # attractor space has twice impact than inertia
+    
+    coherence_matrix = softmax(x, axis=1)
+
+    
+    return attrctr_space_mat,inertia_matrix,coherence_matrix   
 
 def dump_coherence_matrix_to_edgelist(write = True):
     with open(results_file) as f:
