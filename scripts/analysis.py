@@ -5,7 +5,7 @@ import numpy as np
 import networkx as nx
 import node2vec
 import config
-from gensim.models import Word2Vec
+# from gensim.models import Word2Vec
 from scipy.special import softmax
 
 results_file = "test_result.json"
@@ -70,6 +70,11 @@ def init_coherence_matrix(nob,attractors,search_distance,inertial_weight=1,basel
 
 
 def init_coherence_matrix_niraj(attractors, number_of_bits):
+    
+    """attractors is expected as dictionary in following format:
+                {attrctr1: {'depth': 7, 'radius': 1},
+                 attrctr2: {'depth': 9, 'radius': 4},
+                 attrctr3: {'depth': 5, 'radius': 4}}"""
     
     attrctr_space_vec = np.zeros(2**number_of_bits)
 
