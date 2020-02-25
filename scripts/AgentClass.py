@@ -77,8 +77,13 @@ class Agent:
 
             #TODO: Handle the viral parameter - in general, if d = 0 and viral is set,
             #TODO: it should not be possible to make that transition
-
-            dissonance = utilities.sigmoid(d, self.tau)
+            
+            if d > 0:
+                dissonance = utilities.sigmoid(d, self.tau)
+                
+            else:
+                dissonance = 0
+                
             dissonance_list.append(dissonance)
             
             # keeping track of disagreement of bits/total neighbors
@@ -88,7 +93,7 @@ class Agent:
             ones_list[index] = (1-dissonance if curr_bit_state else dissonance)
 
         zeros_list = 1-ones_list
-        tmp_soc_mat = ones_list * bit_matrix + zeros_list * (1-bit_matrix)
+        tmp_soc_mat = ones_list * bit_matrix  + zeros_list * (1-bit_matrix)
 
         # Probabilities for each state given social pressure
         soc_prob_tx = np.prod(tmp_soc_mat,1)
@@ -101,6 +106,8 @@ class Agent:
         self.dissonance_lst = dissonance_list
         self.state_disagreements = disagreements
         
+        return soc_prob_tx
+    
     def count_dissimilar_neighbors(self, kbit):
         count = 0
         for name, agent in self.neighbors.items():

@@ -102,9 +102,16 @@ def init_coherence_matrix_niraj(attractors, number_of_bits):
             bits_difference = hamming(row_st, col_st)
             inertia_matrix[row_st, col_st] = (max_bits - min(max_bits, bits_difference))
 
-    
+          
     x = attrctr_space_mat*inertia_matrix # attractor space has twice impact than inertia
     
+    minimum = x.min()
+    # add noise to coherence matrix:
+    for i, row in enumerate(x):
+        for j, col in enumerate(row):
+            if col == 0:
+                x[i][j] += minimum
+
     coherence_matrix = softmax(x, axis=1)
 
     
