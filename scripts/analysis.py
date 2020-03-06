@@ -325,7 +325,7 @@ def ci2020_paper(replications = 10,timesteps = 100):
     loc_attractor.remove(glob_attractor)
     bit_mat = const.Constants().get_bit_matrix()
 
-    for att in range(3,1+len(loc_attractor)):
+    for att in range(1,1+len(loc_attractor)):
         print("Cell {} of {}".format(att,len(loc_attractor)))
         attractors = [[2**x,100,1] for x in loc_attractor[0:att]]+[[2**glob_attractor,200,1]]
         adf,cm = init_coherence_matrix(number_of_bits,attractors,5)
