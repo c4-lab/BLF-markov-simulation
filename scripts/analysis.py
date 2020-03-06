@@ -6,6 +6,7 @@ import networkx as nx
 import node2vec
 import config
 from gensim.models import Word2Vec
+from scipy.special import softmax
 
 import const
 import random
@@ -75,6 +76,55 @@ def init_coherence_matrix(nob,attractors,search_distance,inertial_weight=1,basel
 
 
     return attractor_df,coherence_matrix
+
+
+def init_coherence_matrix_niraj(attractors, number_of_bits):
+    
+    """attractors is expected as dictionary in following format:
+                {attrctr1: {'depth': 7, 'radius': 1},
+                 attrctr2: {'depth': 9, 'radius': 4},
+                 attrctr3: {'depth': 5, 'radius': 4}}"""
+    
+    attrctr_space_vec = np.zeros(2**number_of_bits)
+
+    for k, v in attractors.items():
+        attrctr_space_vec[k] = v['depth']
+        r = v['radius']
+        n = 2**number_of_bits
+        for j in range(2**number_of_bits):
+                diff = hamming(j, k)
+    #             diff = abs(j-k) ### Uncomment if needed to look into euclidean space
+                if diff <= r:
+                    attrctr_state_distance = (1-diff/v['radius'])*v['depth']
+                    attrctr_space_vec[j] = max(attrctr_space_vec[j], attrctr_state_distance)
+
+    attrctr_space_mat = np.tile(attrctr_space_vec, (2**number_of_bits, 1))
+        
+    
+    # create transition matrix
+    inertia_matrix = np.zeros((2**number_of_bits, 2**number_of_bits))
+
+    max_bits = 3 # maximum bits to for the transitions
+
+    for row_st, row in enumerate(inertia_matrix):
+        for col_st, col in enumerate(row):
+            bits_difference = hamming(row_st, col_st)
+            inertia_matrix[row_st, col_st] = (max_bits - min(max_bits, bits_difference))
+
+          
+    x = attrctr_space_mat*inertia_matrix # attractor space has twice impact than inertia
+    
+    minimum = x.min()
+    # add noise to coherence matrix:
+    for i, row in enumerate(x):
+        for j, col in enumerate(row):
+            if col == 0:
+                x[i][j] += minimum
+
+    coherence_matrix = softmax(x, axis=1)
+
+    
+    return attrctr_space_mat,inertia_matrix,coherence_matrix   
 
 def dump_coherence_matrix_to_edgelist(write = True):
     with open(results_file) as f:

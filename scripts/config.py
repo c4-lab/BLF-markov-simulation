@@ -1,5 +1,5 @@
 # constants for creating coherence matrix 
-number_of_bits = 10
+number_of_bits = 6
 
 seed_val = [0]
 coh_mat_min_value = 0.5
