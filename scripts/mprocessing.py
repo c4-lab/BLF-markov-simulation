@@ -115,64 +115,64 @@ class Agent:
 # In[4]:
 
 
-def update_knowledge(env):
+def update_knowledge(agt):
         """Takes environment with common values to compute"""
         # first convert state binary to int to get the row in coherence matrix
-        txn = env.coherence_matrix
-        bit_matrix = env.bit_matrix
-        alpha = env.alpha
+        txn = worker_env.coherence_matrix
+        bit_matrix = worker_env.bit_matrix
+        alpha = worker_env.alpha
 
-        for agt in env.population:
-            row_ptr = utilities.bool2int(agt.knowledge_state)
+        # for agt in population:
+        row_ptr = utilities.bool2int(agt.knowledge_state)
             # get the corresponding probabilites from the matrix
-            coh_prob_tx = txn[row_ptr]
-            ones_list = np.zeros(number_of_bits)
-            dissonance_list = []
-            disagreements = []
+        coh_prob_tx = txn[row_ptr]
+        ones_list = np.zeros(number_of_bits)
+        dissonance_list = []
+        disagreements = []
 
-            for index, curr_bit_state in enumerate(agt.knowledge_state):
-                # now look for neighbors who disagree in this bit value
+        for index, curr_bit_state in enumerate(agt.knowledge_state):
+            # now look for neighbors who disagree in this bit value
 
-                neigh_disagreement_count = count_dissimilar_neighbors(agt, index)
+            neigh_disagreement_count = count_dissimilar_neighbors(agt, index)
 
-                # compute d as (# of neighbors disagree on bit/# of neighbors)
-                if len(agt.neighbors) > 0:
-                    d = neigh_disagreement_count/len(agt.neighbors)
-                else:
-                    d = 0
+            # compute d as (# of neighbors disagree on bit/# of neighbors)
+            if len(agt.neighbors) > 0:
+                d = neigh_disagreement_count/len(agt.neighbors)
+            else:
+                d = 0
 
-                #TODO: Handle the viral parameter - in general, if d = 0 and viral is set,
-                #TODO: it should not be possible to make that transition
+            #TODO: Handle the viral parameter - in general, if d = 0 and viral is set,
+            #TODO: it should not be possible to make that transition
 
-                if d > 0:
-                    dissonance = utilities.sigmoid(d, agt.tau)
+            if d > 0:
+                dissonance = utilities.sigmoid(d, agt.tau)
 
-                else:
-                    dissonance = 0
+            else:
+                dissonance = 0
 
-                dissonance_list.append(dissonance)
+            dissonance_list.append(dissonance)
 
-                # keeping track of disagreement of bits/total neighbors
-                disagreements.append(d)
-                # transition probabilities given social pressure for moving to a state
-                # with a '1' at this bit
-                ones_list[index] = (1-dissonance if curr_bit_state else dissonance)
+            # keeping track of disagreement of bits/total neighbors
+            disagreements.append(d)
+            # transition probabilities given social pressure for moving to a state
+            # with a '1' at this bit
+            ones_list[index] = (1-dissonance if curr_bit_state else dissonance)
 
-            zeros_list = 1-ones_list
-            tmp_soc_mat = ones_list * bit_matrix  + zeros_list * (1-bit_matrix)
+        zeros_list = 1-ones_list
+        tmp_soc_mat = ones_list * bit_matrix  + zeros_list * (1-bit_matrix)
 
-            # Probabilities for each state given social pressure
-            soc_prob_tx = np.prod(tmp_soc_mat,1)
-            #TODO logs soc_prob_tx for each agent at each time step
+        # Probabilities for each state given social pressure
+        soc_prob_tx = np.prod(tmp_soc_mat,1)
+        #TODO logs soc_prob_tx for each agent at each time step
 
-            probs = alpha * soc_prob_tx + (1-alpha)*coh_prob_tx
-            agt.next_state_probs = probs
-            agt.soc_probs = soc_prob_tx
-            agt.next_state = utilities.int2bool(np.random.choice(range(2**number_of_bits),1,p=probs)[0],number_of_bits)
+        probs = alpha * soc_prob_tx + (1-alpha)*coh_prob_tx
+        agt.next_state_probs = probs
+        agt.soc_probs = soc_prob_tx
+        agt.next_state = utilities.int2bool(np.random.choice(range(2**number_of_bits),1,p=probs)[0],number_of_bits)
 #             print('Next State: ', agt.next_state)
-            agt.dissonance_lst = dissonance_list
-            agt.state_disagreements = disagreements
-
+        agt.dissonance_lst = dissonance_list
+        agt.state_disagreements = disagreements
+        return agt
 #             return soc_prob_tx
 
 def count_dissimilar_neighbors(agt, kbit):
@@ -285,6 +285,7 @@ def run_simulation(alpha, coherence, bit_mat, end_time, proportion, parameter):
     generations = 0
 
     for t in range(end_time):
+        print(t)
         # compute next state for all agents
 #         for agt in list_agents:
 #             soc_mat = agt.update_knowledge(alpha, coherence, bit_mat)
@@ -292,34 +293,33 @@ def run_simulation(alpha, coherence, bit_mat, end_time, proportion, parameter):
 #         start = time.time()
 #         end = time.time()
 
-        with Pool(2, initializer, initargs=(environment,)) as p:
-            p.map(update_knowledge, environment)
+        with Pool(3, initializer, initargs=(environment,)) as p:
+            list_agents = p.map(update_knowledge, environment.population)
 
 #         update_knowledge(environment)
 
-
         # keep record of current record and all other values
-        for agt in environment.population:
-#             print('Viewing: ', agt.next_state)
-            row = {'Agent_Number': int(agt.name.split('t')[1]),
-                   'Time':t,
-                   # at any time step we will need normalized how many neighbors disagree on bits
-                   'bits_disagreement':np.array(agt.state_disagreements),
-                   'Current_Knowledge_State':agt.knowledge_state,
-                   'Current': utilities.bool2int(agt.knowledge_state),
-                   'alpha':alpha,
-                   'Next': utilities.bool2int(agt.next_state),
-                   'Next_Knowledge_State':agt.next_state,
-                   'Proportion': proportion,
-                    'Parameter': parameter}
+#         for agt in list_agents:
+# #             print('Viewing: ', agt.next_state)
+#             row = {'Agent_Number': int(agt.name.split('t')[1]),
+#                    'Time':t,
+#                    # at any time step we will need normalized how many neighbors disagree on bits
+#                    'bits_disagreement':np.array(agt.state_disagreements),
+#                    'Current_Knowledge_State':agt.knowledge_state,
+#                    'Current': utilities.bool2int(agt.knowledge_state),
+#                    'alpha':alpha,
+#                    'Next': utilities.bool2int(agt.next_state),
+#                    'Next_Knowledge_State':agt.next_state,
+#                    'Proportion': proportion,
+#                     'Parameter': parameter}
 
-            d.append(row)
+            # d.append(row)
 
         # now update all agents next state with computed next state
-        for agt in list_agents:
-            agt.knowledge_state = agt.next_state
-            agt.next_state = None
-            agt.dissonance_lst = None
+        # for agt in list_agents:
+        #     agt.knowledge_state = agt.next_state
+        #     agt.next_state = None
+        #     agt.dissonance_lst = None
 
         generations+=1
 
@@ -356,12 +356,12 @@ if __name__ == '__main__':
     ### This cell is for generating the dataset
     # constants intialization
 
-    network_parameters = [0.7, 0.5] #np.arange(0, 1, 0.1).round(2)
-    proportion_parameters = [0.7, 0.5]#np.arange(0, 1, 0.1).round(2)
-    end_simulation_time = 50
+    network_parameters = [0.7] #np.arange(0, 1, 0.1).round(2)
+    proportion_parameters = [0.7]#np.arange(0, 1, 0.1).round(2)
+    end_simulation_time = 10
 
     alphas = np.arange(0, 1, 0.1).round(2)
-    # alphas = [0.1, 0.5, 0.9]
+    alphas = [0.1]
     exp_times = 1
 
     constants = const.Constants()
@@ -372,7 +372,7 @@ if __name__ == '__main__':
 
     start = time.time()
 
-    for exp in range(5):
+    for exp in range(1):
         for alpha in alphas:
             for j in proportion_parameters:
                 # first create environment
