@@ -220,7 +220,7 @@ def reinit_agents(agents,initial_states):
 def get_network_df(list_agents):
     network_df = pd.DataFrame({'source':[], 'target':[]})
     for agt in list_agents:
-        neighbors = agt.get_neighbors_name()
+        neighbors = map(agt.get_neighbors())
         for n in neighbors:
             network_df = network_df.append({'source':agt.name,
                                             'target':n}, ignore_index=True)

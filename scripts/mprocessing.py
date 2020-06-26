@@ -1,4 +1,4 @@
-
+from __future__ import annotations
 import numpy as np
 import pandas as pd
 # from AgentClass import Agent
@@ -22,12 +22,21 @@ import analysis
 from scipy.spatial import distance
 
 from multiprocessing import Pool
+from multiprocessing.shared_memory import *
 from collections import Counter
 from random import choice
+import sys
+
 
 import time
 
 
+glob_environment = None
+glob_coherence_matrix = None
+glob_population = None
+glob_bit_matrix = None
+glob_alpha = None
+glob_buffers = []
 
 def get_tau_distr():
 
@@ -57,7 +66,7 @@ from const import Constants
 class Agent:
 
     def __init__(self, name='', tau=-1, knowledge_dim = 3, initial_state=None):
-        self.neighbors = {} # neighbors will also be dictionary of agents
+        self.neighbors = set() # neighbors are a list a of indices of other agents
         self.name = name
         self.tau = tau # agent's threshold defined in initialization
 
@@ -67,77 +76,51 @@ class Agent:
                 self.knowledge_state = initial_state
             else:
                 raise ValueError('list expected')
-        self.dissonance_lst = None
-        self.next_state_probs = None
-        self.next_state_onehot = None
-        self.next_state = None
-        self.soc_probs = None
-        self.state_disagreements = None
+        # self.dissonance_lst = None
+        # self.next_state_probs = None
+        # self.next_state_onehot = None
+        # self.next_state = None
+        # self.soc_probs = None
+        # self.state_disagreements = None
+
 
     def reset_state(self,nstate = None):
         if nstate is not None:
             self.initial_state = nstate
         self.knowledge_state = self.initial_state
 
-    def add_neighbors(self, neighbor_agent):
-        """add neigbhor agent to the dictionary of neighbors
-        which has neighbor agent name for key and agent itself as value"""
-        self.neighbors[neighbor_agent.name] = neighbor_agent
-        neighbor_agent.neighbors[self.name] = self # neighbors also get new neighbors
+    def add_neighbor_indices(self, *neighbors):
+        """add neigbhor agent to the list of neighbor indices"""
+        self.neighbors.update(neighbors)
 
-    def get_neighbors(self):
-        """return all neighbors for the agent"""
+
+    def get_neighbor_indices(self):
         return self.neighbors
 
-    def get_neighbors_name(self):
-        return [n.name for k, n in self.neighbors.items()]
-
-    def remove_neighbors(self, name):
-        """remove neighbor for the agent with name"""
-        if name in self.neighbors:
-            del self.neighbors[name]
-            print('removed neighbor')
-        else:
-            print('neighbor not found')
-
-
-    def __str__(self):
-        print('-'*30)
-        s = 'agent name : ' + self.name
-        s += '\nknowledge_state: [' + ', '.join(map(str, self.knowledge_state)) + ']'
-        for n,v in self.neighbors.items():
-            s += '\n'
-            s += self.name + ' <-> ' + v.name
-
-        return s
-
-
-# In[4]:
-
-
-def update_knowledge(agt):
+    def update(self,environment):
         """Takes environment with common values to compute"""
+
         # first convert state binary to int to get the row in coherence matrix
-        txn = worker_env.coherence_matrix
-        bit_matrix = worker_env.bit_matrix
-        alpha = worker_env.alpha
+        txn = environment.get_coherence_matrix()
+        bit_matrix = environment.get_bit_matrix()
+        alpha = environment.get_alpha()
 
         # for agt in population:
-        row_ptr = utilities.bool2int(agt.knowledge_state)
-            # get the corresponding probabilites from the matrix
+        row_ptr = utilities.bool2int(self.knowledge_state)
+
+        # get the corresponding probabilites from the matrix
         coh_prob_tx = txn[row_ptr]
         ones_list = np.zeros(number_of_bits)
         dissonance_list = []
         disagreements = []
 
-        for index, curr_bit_state in enumerate(agt.knowledge_state):
+        for index, curr_bit_state in enumerate(self.knowledge_state):
             # now look for neighbors who disagree in this bit value
 
-            neigh_disagreement_count = count_dissimilar_neighbors(agt, index)
 
             # compute d as (# of neighbors disagree on bit/# of neighbors)
-            if len(agt.neighbors) > 0:
-                d = neigh_disagreement_count/len(agt.neighbors)
+            if len(self.get_neighbor_indices()) > 0:
+                d = count_dissimilar_neighbors(self, index, environment)/len(self.get_neighbor_indices())
             else:
                 d = 0
 
@@ -145,7 +128,7 @@ def update_knowledge(agt):
             #TODO: it should not be possible to make that transition
 
             if d > 0:
-                dissonance = utilities.sigmoid(d, agt.tau)
+                dissonance = utilities.sigmoid(d, self.tau)
 
             else:
                 dissonance = 0
@@ -166,19 +149,36 @@ def update_knowledge(agt):
         #TODO logs soc_prob_tx for each agent at each time step
 
         probs = alpha * soc_prob_tx + (1-alpha)*coh_prob_tx
-        agt.next_state_probs = probs
-        agt.soc_probs = soc_prob_tx
-        agt.next_state = utilities.int2bool(np.random.choice(range(2**number_of_bits),1,p=probs)[0],number_of_bits)
-#             print('Next State: ', agt.next_state)
-        agt.dissonance_lst = dissonance_list
-        agt.state_disagreements = disagreements
-        return agt
-#             return soc_prob_tx
+        next_state_probs = probs
+        soc_probs = soc_prob_tx
+        next_state = utilities.int2bool(np.random.choice(range(2**number_of_bits),1,p=probs)[0],number_of_bits)
+        #             print('Next State: ', agt.next_state)
+        dissonance_lst = dissonance_list
+        state_disagreements = disagreements
+        return next_state
 
-def count_dissimilar_neighbors(agt, kbit):
+    def advance(self):
+        self.knowledge_state = self.next_state
+        self.next_state = None
+
+    def __str__(self):
+        print('-'*30)
+        s = 'agent name : ' + self.name
+        s += '\nknowledge_state: [' + ', '.join(map(str, self.knowledge_state)) + ']'
+
+        return s
+
+
+# In[4]:
+
+
+
+
+def count_dissimilar_neighbors(ego, kbit, env:Environment):
     count = 0
-    for name, agent in agt.neighbors.items():
-        if agent.knowledge_state[kbit] != agt.knowledge_state[kbit]:
+    for agent in ego.get_neighbor_indices():
+        alter_state = env.lookup_agent_state(agent)
+        if ego.knowledge_state[kbit] != alter_state[kbit]:
             count += 1
 
     return count
@@ -191,27 +191,73 @@ class Environment:
     functionality for managing id generation, and accessing other agents by id
     """
 
-    def __init__(self, population, coherence, bit_mat, alpha):
-        self.population = population
-        """Holder for the population, indices correspond to ids"""
+    def __init__(self):
+        self.names = {}
 
-        self.coherence_matrix = coherence
-        self.bit_matrix = bit_mat
-        self.alpha = alpha
-
-        """Perhaps some special variables that are shared by all agents"""
-
-    def lookup(self, id: int) -> Agent:
-        """ Get the agent corresponding to this id
-        Args:
-            id: The id of the agent to retrieve
-        Returns:
-            The Agent that corresponds to this index
-        """
-        return self.population[id]
+    def setup_shared(self, population, coherence, bit_mat, alpha):
+        global glob_alpha, glob_bit_matrix, glob_coherence_matrix, glob_population
+        pop = np.array([a.knowledge_state for a in population])
+        glob_coherence_matrix = self.make_shared(coherence,"coherence")
+        glob_population = self.make_shared(pop,"population")
+        glob_bit_matrix = self.make_shared(bit_mat,"bit_matrix")
+        glob_alpha = self.make_shared(np.array([alpha]),"alpha")
 
 
-def create_environment(proportion, parameter):
+
+    def make_shared(self,orig,name = "unknown"):
+        global glob_buffers
+        buf = SharedMemory(create=True, size=orig.nbytes)
+        #Note - this line is critical, or else the buffer dissappears when we exit the function's scope!!!
+        glob_buffers.append(buf)
+        self.names[name] = [buf.name,orig.shape,orig.dtype]
+        shared = np.ndarray(shape=orig.shape,dtype=orig.dtype,buffer=buf.buf)
+        shared[:] = orig[:]
+        return shared
+
+    def reattach(self):
+        global glob_alpha, glob_bit_matrix, glob_coherence_matrix, glob_population
+        print("Reattach {} ".format(self.names))
+        glob_coherence_matrix = self.attach_shared("coherence")
+        glob_population = self.attach_shared("population")
+        glob_bit_matrix = self.attach_shared("bit_matrix")
+        glob_alpha = self.attach_shared("alpha")
+
+    def attach_shared(self,name):
+        global glob_buffers
+        spec = self.names[name]
+        shm = SharedMemory(name = spec[0])
+        glob_buffers.append(shm)
+        return np.ndarray(shape = spec[1],dtype = spec[2], buffer = shm.buf)
+
+    def cleanup(self):
+        global glob_alpha, glob_bit_matrix, glob_coherence_matrix, glob_population
+        del glob_population, glob_coherence_matrix, glob_bit_matrix, glob_alpha
+        for b in glob_buffers:
+            b.close()
+            b.unlink()
+
+    def get_alpha(self):
+        return glob_alpha[0]
+
+    def get_coherence_matrix(self):
+        return glob_coherence_matrix
+
+    def get_bit_matrix(self):
+        return glob_bit_matrix
+
+    def lookup_agent_state(self,idx):
+        return glob_population[idx]
+
+    def update_agent_state(self,idx,array):
+        glob_population[idx] = array
+
+    def update_all_agents(self,agents):
+        for i in range(len(agents)):
+            self.update_agent_state(i,agents[i].knowledge_state)
+
+
+
+def init_agents(parameter):
 
     # bits shuffling for equal bits
     count = 0
@@ -219,7 +265,6 @@ def create_environment(proportion, parameter):
     tau_distr = get_tau_distr()
     list_agents = []
 
-    selected_agents = random.sample(list(range(num_agents)), int(proportion*num_agents))
     for i in range(num_agents):
 
         in_state = [0,0,0,0,0,0]
@@ -228,58 +273,49 @@ def create_environment(proportion, parameter):
 
     # create network
     G = nx.watts_strogatz_graph(num_agents, 10, parameter, seed=0) # FIX THIS! change rewire parameters as from different starting, 1 means random graph as each node is going to rewired and no structure is saved
-    all_edges = G.edges()
-
-    for edge in all_edges:
-        list_agents[edge[0]].add_neighbors(list_agents[edge[1]])
-
-    agt_stack = [list_agents[0]]
-    count = 0
-    num_needed = int(proportion*num_agents)
-#     while len(agt_stack)>0:
-    agt = choice(list_agents)
-    agt_queue = [agt]
-    visited = []
-    while (count < num_needed) and agt_stack:
-        agt = agt_stack.pop(0)
-        if agt.name not in visited:
-            agt.reset_state([1,1,1,1,1,1])
-            visited.append(agt.name)
-            count += 1
-            for _, ngh in agt.get_neighbors().items():
-                agt_stack.append(ngh)
 #     nx.draw(G, with_labels=True)
     return list_agents, G
 
 
-def get_network_df(list_agents):
-    network_df = pd.DataFrame({'Agent Name':[], 'Neighbors':[]})
-    for agt in list_agents:
-        neighbors = agt.get_neighbors_name()
-        network_df = network_df.append({'Agent Name':agt.name,
-                                        'Neighbors':neighbors}, ignore_index=True)
-    return network_df
+def setup_environment(list_agents, network:networkx.Graph, proportion, coherence, bit_mat, alpha):
+
+    all_edges = network.edges()
+
+    for edge in all_edges:
+        list_agents[edge[0]].add_neighbor_indices(edge[1])
+
+    agt_stack = [0]
+    count = 0
+    num_needed = int(proportion*num_agents)
+    visited = []
+    while (count < num_needed) and agt_stack:
+        agt_idx = agt_stack.pop(0)
+        if agt_idx not in visited:
+            list_agents[agt_idx].reset_state([1,1,1,1,1,1])
+            visited.append(agt_idx)
+            count += 1
+            for ngh in list_agents[agt_idx].get_neighbor_indices():
+                agt_stack.append(ngh)
+
+    env = Environment()
+    env.setup_shared(list_agents, coherence, bit_mat, alpha)
+    return env
 
 
+def initializer(evt:Environment):
+    global glob_environment
+    glob_environment = evt
+    print("Reattach shared memory")
+    glob_environment.reattach()
 
-def initializer(arg:Environment) -> None:
-    """  Initializes the worker context
-    The initializer function takes care of copying any data from the Master's context into
-    the Worker's context. This copy of the data is is made available to each worker via a global
-    variable
-    Args:
-        arg: In this case, this is just the Environment
-    """
-    global worker_env
-    worker_env = arg
-
+def update_agent(agt:Agent):
+    return agt.update(glob_environment)
 
 def run_simulation(alpha, coherence, bit_mat, end_time, proportion, parameter):
-
-    list_agents, network_graph = create_environment(proportion, parameter)
-    environment = Environment(list_agents, coherence, bit_mat, alpha)
+    list_agents, network_graph = init_agents(parameter)
+    env = setup_environment(list_agents,network_graph,proportion,coherence,bit_mat,alpha)
     # get network of the agents
-    agent_network_df = get_network_df(list_agents)
+    #agent_network_df = get_network_df(list_agents)
 
     d = []
     generations = 0
@@ -293,8 +329,12 @@ def run_simulation(alpha, coherence, bit_mat, end_time, proportion, parameter):
 #         start = time.time()
 #         end = time.time()
 
-        with Pool(3, initializer, initargs=(environment,)) as p:
-            list_agents = p.map(update_knowledge, environment.population)
+        with Pool(15,initializer=initializer, initargs=(env,)) as p:
+            results = p.map(update_agent, list_agents)
+
+        for idx,agent in enumerate(list_agents):
+            agent.reset_state(results[idx])
+            env.update_agent_state(idx,agent.knowledge_state)
 
 #         update_knowledge(environment)
 
@@ -322,8 +362,8 @@ def run_simulation(alpha, coherence, bit_mat, end_time, proportion, parameter):
         #     agt.dissonance_lst = None
 
         generations+=1
-
-    return pd.DataFrame(d), list_agents, network_graph, environment
+    env.cleanup()
+    return pd.DataFrame(d), list_agents, network_graph, env
 
 
 
@@ -331,9 +371,7 @@ def hamming(a,b):
     return(bin(a^b).count("1"))
 
 
-if __name__ == '__main__':
-
-
+def doit():
     attrctr1 = utilities.bool2int([1,1,1,1,1,1])
     attrctr2 = utilities.bool2int([0,0,0,0,0,0])
 
@@ -350,7 +388,7 @@ if __name__ == '__main__':
 
     attrctrs_1 = [[k, 100, 1] for k,v in attractors.items()]
 
-    attrctr, inert, coh = analysis.init_coherence_matrix(number_of_bits, attrctrs_1, 3)
+    attrctr, coh = analysis.init_coherence_matrix(number_of_bits, attrctrs_1, 3)
 
 
     ### This cell is for generating the dataset
@@ -360,7 +398,7 @@ if __name__ == '__main__':
     proportion_parameters = [0.7]#np.arange(0, 1, 0.1).round(2)
     end_simulation_time = 10
 
-    alphas = np.arange(0, 1, 0.1).round(2)
+    #alphas = np.arange(0, 1, 0.1).round(2)
     alphas = [0.1]
     exp_times = 1
 
@@ -380,45 +418,18 @@ if __name__ == '__main__':
 
                 for i in network_parameters:
 
-                    tmp_record_df, soc_mat, list_agents, network_graph = run_simulation(alpha, coh, bit_mat, end_simulation_time, i, j)
-    #                 tmp_record_df = tmp_record_df[tmp_record_df['Time']==49]
-                    tmp_record_df['exp'] = exp
-                    record_df_list.append(tmp_record_df)
+                    run_simulation(alpha, coh, bit_mat, end_simulation_time, i, j)
+                    #                 tmp_record_df = tmp_record_df[tmp_record_df['Time']==49]
+                    # tmp_record_df['exp'] = exp
+                    # record_df_list.append(tmp_record_df)
 
     end = time.time()
     print((end-start)/60.0)
 
-
-# In[ ]:
-
-
-# x_df = pd.concat(record_df_list)#.to_csv('results.csv', index=False)
-# x_df.to_csv('records_tmp.csv', index=False)
+# if __name__ == '__main__':
+#     doit()
 
 
-# In[ ]:
 
 
-# x_df.head()
 
-
-# In[ ]:
-
-
-# x_df.groupby(['Agent_Number', 'Time', 'alpha', 'Proportion', 'Parameter', 'Current' , 'Next']).size().to_frame('Count').sort_values(by=['Current', 'Count'])\
-#          .drop_duplicates(subset='Count', keep='last')
-
-
-# In[ ]:
-
-
-# run_simulation(alpha, coh, bit_mat, end_simulation_time, i, j)
-
-
-# In[ ]:
-
-
-# x_df[x_df['Agent_Number']==0][['Time','Current', 'Next']]
-
-
-# In[ ]:
