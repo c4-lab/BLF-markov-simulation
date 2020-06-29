@@ -1,5 +1,22 @@
-# constants for creating coherence matrix 
+# constants for creating coherence matrix
 number_of_bits = 6
+num_agents = 100
+
+tau_lower_bound = 0.1
+tau_upper_bound = 1
+tau_mu = 0.5
+tau_sigma = 0.1
+tau_n_samples = 1000
+
+pool_param = 1
+
+watts_strogatz_graph_param = 10
+
+sim_network_params_lst = [0.7] #np.arange(0, 1, 0.1).round(2)
+end_sim_time = 100
+alpha_range = [0.5]
+
+num_experiments = 1
 
 seed_val = [0]
 coh_mat_min_value = 0.5
@@ -40,8 +57,6 @@ fa_max_prob = .9
 contagion_mode='viral'
 scale = 0.8
 
-# other parameters
-num_agents = 500
 
 # for node2vec analysis
 n2v_window_size = 10
@@ -49,11 +64,3 @@ n2v_workers = 8
 n2v_iter = 1
 n2v_num_walks = 40
 n2v_walk_length = 80
-
-
-# for tau
-tau_lower_bound = 0
-tau_upper_bound = 1
-tau_mu =  .5
-tau_sigma = 0.1
-tau_n_samples = num_agents
