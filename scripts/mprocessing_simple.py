@@ -5,7 +5,7 @@ import ray
 import const
 import random
 import networkx as nx
-from config import number_of_bits, num_agents, tau_lower_bound, tau_upper_bound, tau_mu, tau_sigma, tau_n_samples, watts_strogatz_graph_param,sim_network_params_lst, end_sim_time, alpha_range, num_experiments
+from config import number_of_bits, num_agents, tau_lower_bound, tau_upper_bound, tau_mu, tau_sigma, tau_n_samples
 from scipy import stats
 import analysis
 import time
@@ -17,8 +17,8 @@ shrd_static = {
     "alpha":None
 }
 
-# def hamming(a,b):
-#     return(bin(a^b).count("1"))
+def hamming(a,b):
+    return(bin(a^b).count("1"))
 
 
 
@@ -144,19 +144,15 @@ def run_simulation(end_time, agents, states):
         states = ray.get(results)
         del dynamic_obj
 
-def create_attractors(attractors_states=[]):
-    if len(attractors_states)==0:
-        attrctr1 = utilities.bool2int(1 for _ in range(number_of_bits))
-        attrctr2 = utilities.bool2int(0 for _ in range(number_of_bits))
 
-        attrctrs = [attrctr1, attrctr2]
+def doit():
+    attrctr1 = utilities.bool2int([1,1,1,1,1,1])
+    attrctr2 = utilities.bool2int([0,0,0,0,0,0])
 
-    else:
-        attrctrs = attractors_states[:]
-
+    attrctrs = [attrctr1, attrctr2]
     attractors = {}
     number_attractors = 0
-    while  number_attractors< len(attrctrs):
+    while  number_attractors< 2:
         attractor_state = attrctrs.pop()
         attractor_depth = random.randint(1, 4) # depth for each attractors is picked randomly
         attractor_radius = random.randint(1, 2)
@@ -165,30 +161,23 @@ def create_attractors(attractors_states=[]):
         number_attractors += 1
 
     attrctrs_1 = [[k, 100, 1] for k,v in attractors.items()]
-    attrctr, coherence_mat = analysis.init_coherence_matrix(number_of_bits, attrctrs_1, 3)
+    attrctr, coh = analysis.init_coherence_matrix(number_of_bits, attrctrs_1, 3)
 
-    return coherence_mat
-
-def doit():
-     # setting two attractors with one having all zeros and other with all ones
-
-
-    network_parameters = sim_network_params_lst
-    end_simulation_time = end_sim_time
+    network_parameters = [0.7] #np.arange(0, 1, 0.1).round(2)
+    end_simulation_time = 10
 
     #alphas = np.arange(0, 1, 0.1).round(2)
-    alphas = alpha_range
+    alphas = [0.1]
     constants = const.Constants()
 
     bit_mat = constants.get_bit_matrix()
 
-    coh = create_attractors()
     ray.init()
     start = time.time()
-    for exp in range(num_experiments):
+    for exp in range(1):
         for alpha in alphas:
             for i in network_parameters:
-                G = nx.watts_strogatz_graph(num_agents, watts_strogatz_graph_param, i, seed=0) # FIX THIS! change rewire parameters as from different starting, 1 means random graph as each node is going to rewired and no structure is saved
+                G = nx.watts_strogatz_graph(num_agents, 10, i, seed=0) # FIX THIS! change rewire parameters as from different starting, 1 means random graph as each node is going to rewired and no structure is saved
                 agents, states = setup_environment(G,coh,bit_mat,alpha)
                 run_simulation(end_simulation_time, agents, states)
 
