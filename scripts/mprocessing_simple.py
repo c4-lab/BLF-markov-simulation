@@ -7,7 +7,7 @@ import const
 import random
 import networkx as nx
 # all parameters imported from the config file
-from config import number_of_bits, num_agents, tau_lower_bound, tau_upper_bound, tau_mu, tau_sigma, tau_n_samples, watts_strogatz_graph_param,sim_network_params_lst, end_sim_time, alpha_range, num_experiments, attrctr_min_depth, attrctr_max_depth, attrctr_min_radius, attrctr_max_radius
+from config import number_of_bits, num_agents, tau_lower_bound, tau_upper_bound, tau_mu, tau_sigma, tau_n_samples, watts_strogatz_graph_param,sim_network_params_lst, end_sim_time, alpha_range, num_experiments, attrctr_min_depth, attrctr_max_depth, attrctr_min_radius, attrctr_max_radius, attractors_dict_lst
 from scipy import stats
 import analysis
 import time
@@ -174,29 +174,27 @@ def chunks(lst, n):
         result[i % n].append(agent)
     return result
 
-def create_attractors(attractors_states=[], depths=[], radius=[]):
-    if len(attractors_states)==0:
+def create_attractors(attractors_dict_list={}):
+    if len(attractors_dict_list)==0:
         attrctr1 = utilities.bool2int(1 for _ in range(number_of_bits))
         attrctr2 = utilities.bool2int(0 for _ in range(number_of_bits))
 
         attrctrs = [attrctr1, attrctr2]
+    
+        for index, val in enumerate(attrctrs):
+            attractor_state = attrctrs[index]
+            attractor_depth = random.randint(attrctr_min_depth, attrctr_max_depth) # depth for each attractors is picked randomly
+            attractor_radius = random.randint(attrctr_min_radius, attrctr_max_radius)
+
+            attractors[attractor_state] = {'depth': attractor_depth, 'radius': attractor_radius}
+
+            #TODO: Fix this with dynamic rather than static attractor depth and radius
+            attrctrs_1 = [[k, 100, 1] for k,v in attractors.items()]
 
     else:
-        attrctrs = attractors_states[:]
+        attrctrs_1 = [[att['state'], att['depth'], att['radius']] for att in attractors_dict_list]
 
-    attractors = {}
-    number_attractors = 0
-    
-    for index, val in enumerate(attrctrs):
-        attractor_state = attrctrs[index]
-        attractor_depth = random.randint(attrctr_min_depth, attrctr_max_depth) # depth for each attractors is picked randomly
-        attractor_radius = random.randint(attrctr_min_radius, attrctr_max_radius)
 
-        attractors[attractor_state] = {'depth': attractor_depth, 'radius': attractor_radius}
-        number_attractors += 1
-
-    #TODO: Fix this with dynamic rather than static attractor depth and radius
-    attrctrs_1 = [[k, 100, 1] for k,v in attractors.items()]
     attrctr, coherence_mat = analysis.init_coherence_matrix(number_of_bits, attrctrs_1, 3)
 
     return coherence_mat
@@ -214,7 +212,7 @@ def doit():
 
     bit_mat = constants.get_bit_matrix()
 
-    coh = create_attractors()
+    coh = create_attractors(attractors_dict_lst)
     ray.init()
     print('-'*100)
     print('Number of agents is: {} and number of bits is: {}'.format(num_agents, number_of_bits))

@@ -2,6 +2,9 @@
 number_of_bits = 10 # setting for number of bits
 num_agents = 1000   # setting for number of agents
 
+# attractors description
+
+attractors_dict_lst = [{'state':0, 'radius':1, 'depth':1}, {'state':512, 'radius':1, 'depth':1}, {'state':500, 'depth':10, 'radius':10}]
 # attractors radius and depth parameters 
 attrctr_min_depth = 1
 attrctr_max_depth = 5
