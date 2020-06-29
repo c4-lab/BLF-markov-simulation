@@ -2,6 +2,7 @@
 number_of_bits = 10 # setting for number of bits
 num_agents = 1000   # setting for number of agents
 
+# parameters for tau distribution of agents
 tau_lower_bound = 0.1
 tau_upper_bound = 1
 tau_mu = 0.5
