@@ -174,7 +174,7 @@ def chunks(lst, n):
         result[i % n].append(agent)
     return result
 
-def create_attractors(attractors_states=[]):
+def create_attractors(attractors_states=[], depths=[], radius=[]):
     if len(attractors_states)==0:
         attrctr1 = utilities.bool2int(1 for _ in range(number_of_bits))
         attrctr2 = utilities.bool2int(0 for _ in range(number_of_bits))
@@ -186,8 +186,9 @@ def create_attractors(attractors_states=[]):
 
     attractors = {}
     number_attractors = 0
-    while  number_attractors< len(attrctrs):
-        attractor_state = attrctrs.pop()
+    
+    for index, val in enumerate(attrctrs):
+        attractor_state = attrctrs[index]
         attractor_depth = random.randint(attrctr_min_depth, attrctr_max_depth) # depth for each attractors is picked randomly
         attractor_radius = random.randint(attrctr_min_radius, attrctr_max_radius)
 
@@ -220,7 +221,10 @@ def doit():
     print('-'*100)
     print('Running experiments ............ ')
     start = time.time()
+    all_sim_results = []
+
     for exp in range(num_experiments):
+        print('Starting experiment number: {}'.format(exp))
         for alpha in alphas:
             for i in network_parameters:
                 G = nx.watts_strogatz_graph(num_agents, watts_strogatz_graph_param, i, seed=0) # FIX THIS! change rewire parameters as from different starting, 1 means random graph as each node is going to rewired and no structure is saved
@@ -232,9 +236,11 @@ def doit():
                 sim_df_exp['alpha'] = alpha
                 sim_df_exp['Network_Param'] = i
                 sim_df_exp['Experiment_Num'] = exp
-                print(sim_df_exp.tail())
-    print('='*100)
-
+                all_sim_results.append(sim_df_exp)
+                #print(sim_df_exp.tail())
+    #print('='*100)
+    all_sim_combined = pd.concat(all_sim_results)
+    all_sim_combined.to_csv('../../sim_results.csv', index=False)
     end = time.time()
     print('> Experiment completed in {} minutes.'.format((end-start)/60.0))
 
