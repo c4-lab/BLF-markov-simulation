@@ -65,10 +65,17 @@ fa_max_prob = .9
 contagion_mode='viral'
 scale = 0.8
 
-
 # for node2vec analysis
 n2v_window_size = 10
 n2v_workers = 8
 n2v_iter = 1
 n2v_num_walks = 40
 n2v_walk_length = 80
+
+
+# for tau
+tau_lower_bound = 0
+tau_upper_bound = 1
+tau_mu =  .5
+tau_sigma = 0.1
+tau_n_samples = num_agents

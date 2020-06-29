@@ -12,6 +12,7 @@ from scipy import stats
 import analysis
 import time
 import utilities
+import os
 
 import pandas as pd
 from collections import defaultdict
@@ -138,33 +139,40 @@ def setup_environment(network:nx.Graph, coherence, bit_mat, alpha):
 
 
 @ray.remote
-def agent_update(agent:Agent, static, dynamic):
-    return agent.update(static,dynamic)
+def agent_update(agents, static, dynamic):
+    return [agent.update(static,dynamic) for agent in agents]
 
 
 def run_simulation(end_time, agents, states):
     static_obj = ray.put(shrd_static)
+
     sim_result_lst = []
+
+    ncores = os.cpu_count()
+
 
     for t in range(end_time):
         dynamic_obj = ray.put(states)
+        chunked = chunks(agents,ncores)
         sim_result = defaultdict(list)
         for agt_index, agt_state in enumerate(states):
             sim_result['Agent_Number'].append(agt_index)
             sim_result['Time'].append(t)
             sim_result['Current_Knowledge_State'].append(utilities.bool2int(agt_state))
 
-        results = [agent_update.remote(agent,static_obj,dynamic_obj) for agent in agents]
-        states = ray.get(results)
-        # TODO: Assuming ray preserves order
-        for agt_state in states:
-            sim_result['Next_Knowledge_State'].append(utilities.bool2int(agt_state))
-
+        results = [agent_update.remote(chunk,static_obj,dynamic_obj) for chunk in chunked]
+        states = [item for sublist in ray.get(results) for item in sublist]
+        sim_result['Next_Knowledge_State'].append(utilities.bool2int(agt_state))
         sim_result_lst.append(sim_result)
-
         del dynamic_obj
-
     return sim_result_lst
+
+def chunks(lst, n):
+    """Yield n chunks from lst."""
+    result = [[] for i in range(n)]
+    for i, agent in enumerate(lst):
+        result[i % n].append(agent)
+    return result
 
 def create_attractors(attractors_states=[]):
     if len(attractors_states)==0:
@@ -224,11 +232,16 @@ def doit():
                 sim_df_exp['alpha'] = alpha
                 sim_df_exp['Network_Param'] = i
                 sim_df_exp['Experiment_Num'] = exp
-                print(sim_df_exp.head())
-    print('='*300)
+                print(sim_df_exp.tail())
+    print('='*100)
 
     end = time.time()
     print('> Experiment completed in {} minutes.'.format((end-start)/60.0))
 
 if __name__ == '__main__':
      doit()
+
+
+
+
+
