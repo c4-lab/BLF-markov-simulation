@@ -10,6 +10,8 @@ from scipy import stats
 import analysis
 import time
 import utilities
+import math
+import os
 
 shrd_static = {
     "coherence_matrix":None,
@@ -54,7 +56,7 @@ class Agent:
 
     def update(self,static,dynamic):
         """Takes environment with common values to compute"""
-
+        #print("Agent with {} is running".format(self.idx))
         # first convert state binary to int to get the row in coherence matrix
         txn = static["coherence_matrix"]
         bit_matrix = static["bit_matrix"]
@@ -132,18 +134,28 @@ def setup_environment(network:nx.Graph, coherence, bit_mat, alpha):
 
 
 @ray.remote
-def agent_update(agent:Agent, static, dynamic):
-    return agent.update(static,dynamic)
+def agent_update(agents, static, dynamic):
+    return [agent.update(static,dynamic) for agent in agents]
 
 
 def run_simulation(end_time, agents, states):
     static_obj = ray.put(shrd_static)
+    ncores = os.cpu_count()
+
+
     for t in range(end_time):
         dynamic_obj = ray.put(states)
-        results = [agent_update.remote(agent,static_obj,dynamic_obj) for agent in agents]
-        states = ray.get(results)
+        chunked = chunks(agents,ncores)
+        results = [agent_update.remote(chunk,static_obj,dynamic_obj) for chunk in chunked]
+        states = [item for sublist in ray.get(results) for item in sublist]
         del dynamic_obj
 
+def chunks(lst, n):
+    """Yield n chunks from lst."""
+    result = [[] for i in range(n)]
+    for i, agent in enumerate(lst):
+        result[i % n].append(agent)
+    return result
 
 def doit():
     attrctr1 = utilities.bool2int([1,1,1,1,1,1])
@@ -164,7 +176,7 @@ def doit():
     attrctr, coh = analysis.init_coherence_matrix(number_of_bits, attrctrs_1, 3)
 
     network_parameters = [0.7] #np.arange(0, 1, 0.1).round(2)
-    end_simulation_time = 10
+    end_simulation_time = 20
 
     #alphas = np.arange(0, 1, 0.1).round(2)
     alphas = [0.1]
