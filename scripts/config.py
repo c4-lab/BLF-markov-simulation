@@ -2,6 +2,13 @@
 number_of_bits = 10 # setting for number of bits
 num_agents = 1000   # setting for number of agents
 
+# attractors radius and depth parameters 
+attrctr_min_depth = 1
+attrctr_max_depth = 5
+
+attrctr_min_radius = 1
+attrctr_max_radius = 5
+
 # parameters for tau distribution of agents
 tau_lower_bound = 0.1
 tau_upper_bound = 1

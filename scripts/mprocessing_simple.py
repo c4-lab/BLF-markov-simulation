@@ -7,11 +7,14 @@ import const
 import random
 import networkx as nx
 # all parameters imported from the config file
-from config import number_of_bits, num_agents, tau_lower_bound, tau_upper_bound, tau_mu, tau_sigma, tau_n_samples, watts_strogatz_graph_param,sim_network_params_lst, end_sim_time, alpha_range, num_experiments
+from config import number_of_bits, num_agents, tau_lower_bound, tau_upper_bound, tau_mu, tau_sigma, tau_n_samples, watts_strogatz_graph_param,sim_network_params_lst, end_sim_time, alpha_range, num_experiments, attrctr_min_depth, attrctr_max_depth, attrctr_min_radius, attrctr_max_radius
 from scipy import stats
 import analysis
 import time
 import utilities
+
+import pandas as pd
+from collections import defaultdict
 
 shrd_static = {
     "coherence_matrix":None,
@@ -130,7 +133,7 @@ def setup_environment(network:nx.Graph, coherence, bit_mat, alpha):
     states = []
     for i in range(num_agents):
         states.append(utilities.int2bool(values[i % len(values)],number_of_bits))
-    print(states[0])
+
     return list_agents, states
 
 
@@ -141,11 +144,27 @@ def agent_update(agent:Agent, static, dynamic):
 
 def run_simulation(end_time, agents, states):
     static_obj = ray.put(shrd_static)
+    sim_result_lst = []
+
     for t in range(end_time):
         dynamic_obj = ray.put(states)
+        sim_result = defaultdict(list)
+        for agt_index, agt_state in enumerate(states):
+            sim_result['Agent_Number'].append(agt_index)
+            sim_result['Time'].append(t)
+            sim_result['Current_Knowledge_State'].append(utilities.bool2int(agt_state))
+
         results = [agent_update.remote(agent,static_obj,dynamic_obj) for agent in agents]
         states = ray.get(results)
+        # TODO: Assuming ray preserves order
+        for agt_state in states:
+            sim_result['Next_Knowledge_State'].append(utilities.bool2int(agt_state))
+
+        sim_result_lst.append(sim_result)
+
         del dynamic_obj
+
+    return sim_result_lst
 
 def create_attractors(attractors_states=[]):
     if len(attractors_states)==0:
@@ -161,12 +180,13 @@ def create_attractors(attractors_states=[]):
     number_attractors = 0
     while  number_attractors< len(attrctrs):
         attractor_state = attrctrs.pop()
-        attractor_depth = random.randint(1, 4) # depth for each attractors is picked randomly
-        attractor_radius = random.randint(1, 2)
+        attractor_depth = random.randint(attrctr_min_depth, attrctr_max_depth) # depth for each attractors is picked randomly
+        attractor_radius = random.randint(attrctr_min_radius, attrctr_max_radius)
 
         attractors[attractor_state] = {'depth': attractor_depth, 'radius': attractor_radius}
         number_attractors += 1
 
+    #TODO: Fix this with dynamic rather than static attractor depth and radius
     attrctrs_1 = [[k, 100, 1] for k,v in attractors.items()]
     attrctr, coherence_mat = analysis.init_coherence_matrix(number_of_bits, attrctrs_1, 3)
 
@@ -187,17 +207,28 @@ def doit():
 
     coh = create_attractors()
     ray.init()
-    print('Number of agents is:{} and number of bits is: {}'.format(num_agents, number_of_bits))
+    print('-'*100)
+    print('Number of agents is: {} and number of bits is: {}'.format(num_agents, number_of_bits))
+    print('-'*100)
+    print('Running experiments ............ ')
     start = time.time()
     for exp in range(num_experiments):
         for alpha in alphas:
             for i in network_parameters:
                 G = nx.watts_strogatz_graph(num_agents, watts_strogatz_graph_param, i, seed=0) # FIX THIS! change rewire parameters as from different starting, 1 means random graph as each node is going to rewired and no structure is saved
                 agents, states = setup_environment(G,coh,bit_mat,alpha)
-                run_simulation(end_simulation_time, agents, states)
+                simulation_results = run_simulation(end_simulation_time, agents, states)
+                sim_df = pd.DataFrame(simulation_results)
+                sim_df_exp = sim_df.apply(pd.Series.explode).reset_index()
+                sim_df_exp.drop('index', axis=1, inplace=True)
+                sim_df_exp['alpha'] = alpha
+                sim_df_exp['Network_Param'] = i
+                sim_df_exp['Experiment_Num'] = exp
+                print(sim_df_exp.head())
+    print('='*300)
 
     end = time.time()
-    print((end-start)/60.0)
+    print('> Experiment completed in {} minutes.'.format((end-start)/60.0))
 
 if __name__ == '__main__':
      doit()
