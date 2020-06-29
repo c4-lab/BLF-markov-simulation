@@ -5,6 +5,7 @@ import ray
 import const
 import random
 import networkx as nx
+# all parameters imported from the config file
 from config import number_of_bits, num_agents, tau_lower_bound, tau_upper_bound, tau_mu, tau_sigma, tau_n_samples, watts_strogatz_graph_param,sim_network_params_lst, end_sim_time, alpha_range, num_experiments
 from scipy import stats
 import analysis
