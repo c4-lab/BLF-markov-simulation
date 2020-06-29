@@ -128,6 +128,7 @@ def setup_environment(network:nx.Graph, coherence, bit_mat, alpha):
     states = []
     for i in range(num_agents):
         states.append(utilities.int2bool(values[i % len(values)],number_of_bits))
+    print(states[0])
     return list_agents, states
 
 
@@ -184,6 +185,7 @@ def doit():
 
     coh = create_attractors()
     ray.init()
+    print('Number of agents is:{} and number of bits is: {}'.format(num_agents, number_of_bits))
     start = time.time()
     for exp in range(num_experiments):
         for alpha in alphas:

@@ -1,6 +1,6 @@
 # constants for creating coherence matrix
-number_of_bits = 6
-num_agents = 100
+number_of_bits = 10
+num_agents = 1000
 
 tau_lower_bound = 0.1
 tau_upper_bound = 1
