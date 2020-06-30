@@ -162,7 +162,8 @@ def run_simulation(end_time, agents, states):
 
         results = [agent_update.remote(chunk,static_obj,dynamic_obj) for chunk in chunked]
         states = [item for sublist in ray.get(results) for item in sublist]
-        sim_result['Next_Knowledge_State'].append(utilities.bool2int(agt_state))
+        for agt_nxt_state in states:
+            sim_result['Next_Knowledge_State'].append(utilities.bool2int(agt_nxt_state))
         sim_result_lst.append(sim_result)
         del dynamic_obj
     return sim_result_lst
