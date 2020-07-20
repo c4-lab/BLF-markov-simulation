@@ -1,10 +1,16 @@
+import numpy as np
+
 # constants for creating coherence matrix
 number_of_bits = 10 # setting for number of bits
-num_agents = 1000   # setting for number of agents
+num_agents = 1024   # setting for number of agents
 
 # attractors description
 
-attractors_dict_lst = [{'state':0, 'radius':1, 'depth':1}, {'state':512, 'radius':1, 'depth':1}, {'state':500, 'depth':10, 'radius':10}]
+attractors_dict_lst = [{'state':2, 'radius':1, 'depth':100}, {'state':4, 'radius':1, 'depth':100}, {'state':8, 'depth':100, 'radius':1},
+{'state':16, 'radius':1, 'depth':100}, {'state':32, 'radius':1, 'depth':200}, {'state':64, 'depth':100, 'radius':1},
+{'state':128, 'radius':1, 'depth':100}, {'state':256, 'radius':1, 'depth':100}, {'state':512, 'depth':100, 'radius':1},
+{'state':1024, 'radius':1, 'depth':100}]
+
 # attractors radius and depth parameters 
 attrctr_min_depth = 1
 attrctr_max_depth = 5
@@ -25,11 +31,11 @@ tau_n_samples = 1000
 # network x parameter
 watts_strogatz_graph_param = 10
 
-sim_network_params_lst = [0.7] #np.arange(0, 1, 0.1).round(2)
+sim_network_params_lst = np.linspace(0, 1, 11)
 end_sim_time = 100
-alpha_range = [0.5]
+alpha_range = np.linspace(0, 1, 11)
 
-num_experiments = 1
+num_experiments = 10
 
 seed_val = [0]
 coh_mat_min_value = 0.5
@@ -59,9 +65,9 @@ flip_max_value = 1
 
 
 #fixedattractor
-attractors = [(0,0),(682,.2),(1023,.3)]
-fa_max_dist = 3
-fa_max_prob = .9
+#attractors = [(0,0),(682,.2),(1023,.3)]
+#fa_max_dist = 3
+#fa_max_prob = .9
 
 
 

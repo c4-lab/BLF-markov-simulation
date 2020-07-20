@@ -7,7 +7,7 @@ import const
 import random
 import networkx as nx
 # all parameters imported from the config file
-from config import number_of_bits, num_agents, tau_lower_bound, tau_upper_bound, tau_mu, tau_sigma, tau_n_samples, watts_strogatz_graph_param,sim_network_params_lst, end_sim_time, alpha_range, num_experiments, attrctr_min_depth, attrctr_max_depth, attrctr_min_radius, attrctr_max_radius, attractors_dict_lst
+from config import number_of_bits, num_agents, tau_lower_bound, tau_upper_bound, tau_mu, tau_sigma, tau_n_samples, watts_strogatz_graph_param,sim_network_params_lst, end_sim_time, alpha_range, num_experiments, attrctr_min_depth, attrctr_max_depth, attrctr_min_radius, attrctr_max_radius
 from scipy import stats
 import analysis
 import time
@@ -26,8 +26,7 @@ shrd_static = {
 # def hamming(a,b):
 #     return(bin(a^b).count("1"))
 
-random_list = [random.choice(list(range(num_agents))) for i in range(num_experiments)]
-exp_number = 0
+
 
 def get_tau_distr():
 
@@ -113,11 +112,9 @@ def init_agents(network:nx.Graph):
 
     tau_distr = get_tau_distr()
     list_agents = []
-    #print(exp_number)
-    randomize = random_list[exp_number]
 
     for i in range(network.number_of_nodes()):
-        a = Agent(idx = ((i+randomize)%num_agents), tau=random.choice(tau_distr))
+        a = Agent(idx = i, tau=random.choice(tau_distr))
         list_agents.append(a)
         n = [x for x in network.neighbors(i)]
         a.add_neighbor_indices(n)
@@ -148,28 +145,38 @@ def agent_update(agents, static, dynamic):
 
 def run_simulation(end_time, agents, states):
     static_obj = ray.put(shrd_static)
-
+<<<<<<< HEAD
     sim_result_lst = []
-
-    ncores = os.cpu_count()
-
 
     for t in range(end_time):
         dynamic_obj = ray.put(states)
-        chunked = chunks(agents,ncores)
         sim_result = defaultdict(list)
         for agt_index, agt_state in enumerate(states):
             sim_result['Agent_Number'].append(agt_index)
             sim_result['Time'].append(t)
             sim_result['Current_Knowledge_State'].append(utilities.bool2int(agt_state))
 
+        results = [agent_update.remote(agent,static_obj,dynamic_obj) for agent in agents]
+        states = ray.get(results)
+        # TODO: Assuming ray preserves order
+        for agt_state in states:
+            sim_result['Next_Knowledge_State'].append(utilities.bool2int(agt_state))
+
+        sim_result_lst.append(sim_result)
+
+        del dynamic_obj
+
+    return sim_result_lst
+=======
+    ncores = os.cpu_count()
+
+
+    for t in range(end_time):
+        dynamic_obj = ray.put(states)
+        chunked = chunks(agents,ncores)
         results = [agent_update.remote(chunk,static_obj,dynamic_obj) for chunk in chunked]
         states = [item for sublist in ray.get(results) for item in sublist]
-        for agt_nxt_state in states:
-            sim_result['Next_Knowledge_State'].append(utilities.bool2int(agt_nxt_state))
-        sim_result_lst.append(sim_result)
         del dynamic_obj
-    return sim_result_lst
 
 def chunks(lst, n):
     """Yield n chunks from lst."""
@@ -177,28 +184,30 @@ def chunks(lst, n):
     for i, agent in enumerate(lst):
         result[i % n].append(agent)
     return result
+>>>>>>> 5c1d36a131e59644cb49805236c753a4d5bfb627
 
-def create_attractors(attractors_dict_list={}):
-    if len(attractors_dict_list)==0:
+def create_attractors(attractors_states=[]):
+    if len(attractors_states)==0:
         attrctr1 = utilities.bool2int(1 for _ in range(number_of_bits))
         attrctr2 = utilities.bool2int(0 for _ in range(number_of_bits))
 
         attrctrs = [attrctr1, attrctr2]
-    
-        for index, val in enumerate(attrctrs):
-            attractor_state = attrctrs[index]
-            attractor_depth = random.randint(attrctr_min_depth, attrctr_max_depth) # depth for each attractors is picked randomly
-            attractor_radius = random.randint(attrctr_min_radius, attrctr_max_radius)
-
-            attractors[attractor_state] = {'depth': attractor_depth, 'radius': attractor_radius}
-
-            #TODO: Fix this with dynamic rather than static attractor depth and radius
-            attrctrs_1 = [[k, 100, 1] for k,v in attractors.items()]
 
     else:
-        attrctrs_1 = [[att['state'], att['depth'], att['radius']] for att in attractors_dict_list]
+        attrctrs = attractors_states[:]
 
+    attractors = {}
+    number_attractors = 0
+    while  number_attractors< len(attrctrs):
+        attractor_state = attrctrs.pop()
+        attractor_depth = random.randint(attrctr_min_depth, attrctr_max_depth) # depth for each attractors is picked randomly
+        attractor_radius = random.randint(attrctr_min_radius, attrctr_max_radius)
 
+        attractors[attractor_state] = {'depth': attractor_depth, 'radius': attractor_radius}
+        number_attractors += 1
+
+    #TODO: Fix this with dynamic rather than static attractor depth and radius
+    attrctrs_1 = [[k, 100, 1] for k,v in attractors.items()]
     attrctr, coherence_mat = analysis.init_coherence_matrix(number_of_bits, attrctrs_1, 3)
 
     return coherence_mat
@@ -216,19 +225,14 @@ def doit():
 
     bit_mat = constants.get_bit_matrix()
 
-    coh = create_attractors(attractors_dict_lst)
+    coh = create_attractors()
     ray.init()
     print('-'*100)
     print('Number of agents is: {} and number of bits is: {}'.format(num_agents, number_of_bits))
     print('-'*100)
     print('Running experiments ............ ')
     start = time.time()
-    all_sim_results = []
-    global exp_number
     for exp in range(num_experiments):
-         
-        exp_number = exp
-        print('Starting experiment number: {}'.format(exp))
         for alpha in alphas:
             for i in network_parameters:
                 G = nx.watts_strogatz_graph(num_agents, watts_strogatz_graph_param, i, seed=0) # FIX THIS! change rewire parameters as from different starting, 1 means random graph as each node is going to rewired and no structure is saved
@@ -240,16 +244,14 @@ def doit():
                 sim_df_exp['alpha'] = alpha
                 sim_df_exp['Network_Param'] = i
                 sim_df_exp['Experiment_Num'] = exp
-                all_sim_results.append(sim_df_exp)
-                #print(sim_df_exp.tail())
-    #print('='*100)
-    all_sim_combined = pd.concat(all_sim_results)
-    all_sim_combined.to_csv('../../sim_results.csv', index=False)
+                print(sim_df_exp.head())
+    print('='*300)
+
     end = time.time()
     print('> Experiment completed in {} minutes.'.format((end-start)/60.0))
 
 if __name__ == '__main__':
-    doit()
+     doit()
 
 
 
