@@ -1,13 +1,13 @@
 import numpy as np
 
 # constants for creating coherence matrix
-number_of_bits = 10 # setting for number of bits
-num_agents = 1024   # setting for number of agents
+number_of_bits = 4 # setting for number of bits <--- changed
+num_agents = 10   # setting for number of agents <--- changed
 
 # attractors description
 
-attractors_dict_lst = [{'state':2, 'radius':1, 'depth':100}, {'state':4, 'radius':1, 'depth':100}, {'state':8, 'depth':100, 'radius':1},
-{'state':16, 'radius':1, 'depth':100}, {'state':32, 'radius':1, 'depth':200}, {'state':64, 'depth':100, 'radius':1},
+attractors_dict_lst = [{'state':32, 'radius':1, 'depth':200}, {'state':2, 'radius':1, 'depth':100}, {'state':4, 'radius':1, 'depth':100}, 
+{'state':8, 'depth':100, 'radius':1},{'state':16, 'radius':1, 'depth':100}, {'state':64, 'depth':100, 'radius':1},
 {'state':128, 'radius':1, 'depth':100}, {'state':256, 'radius':1, 'depth':100}, {'state':512, 'depth':100, 'radius':1},
 {'state':1024, 'radius':1, 'depth':100}]
 
@@ -32,10 +32,10 @@ tau_n_samples = 1000
 watts_strogatz_graph_param = 10
 
 sim_network_params_lst = np.linspace(0, 1, 11)
-end_sim_time = 100
-alpha_range = np.linspace(0, 1, 11)
+end_sim_time = 10 # <--- changed
+alpha_range = np.log10(np.array(range(1,21)))/np.log10(20) #np.linspace(0, 1, 11)
 
-num_experiments = 10
+num_experiments = 3 # <--- changed
 
 seed_val = [0]
 coh_mat_min_value = 0.5

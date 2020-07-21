@@ -26,7 +26,6 @@ shrd_static = {
 # def hamming(a,b):
 #     return(bin(a^b).count("1"))
 
-random_list = [random.choice(list(range(num_agents))) for i in range(num_experiments)]
 exp_number = 0
 
 def get_tau_distr():
@@ -113,11 +112,9 @@ def init_agents(network:nx.Graph):
 
     tau_distr = get_tau_distr()
     list_agents = []
-    #print(exp_number)
-    randomize = random_list[exp_number]
 
     for i in range(network.number_of_nodes()):
-        a = Agent(idx = ((i+randomize)%num_agents), tau=random.choice(tau_distr))
+        a = Agent(idx = i, tau=random.choice(tau_distr))
         list_agents.append(a)
         n = [x for x in network.neighbors(i)]
         a.add_neighbor_indices(n)
@@ -216,7 +213,7 @@ def doit():
 
     bit_mat = constants.get_bit_matrix()
 
-    coh = create_attractors(attractors_dict_lst)
+
     ray.init()
     print('-'*100)
     print('Number of agents is: {} and number of bits is: {}'.format(num_agents, number_of_bits))
@@ -224,24 +221,26 @@ def doit():
     print('Running experiments ............ ')
     start = time.time()
     all_sim_results = []
-    global exp_number
-    for exp in range(num_experiments):
-         
-        exp_number = exp
-        print('Starting experiment number: {}'.format(exp))
-        for alpha in alphas:
-            for i in network_parameters:
-                G = nx.watts_strogatz_graph(num_agents, watts_strogatz_graph_param, i, seed=0) # FIX THIS! change rewire parameters as from different starting, 1 means random graph as each node is going to rewired and no structure is saved
-                agents, states = setup_environment(G,coh,bit_mat,alpha)
-                simulation_results = run_simulation(end_simulation_time, agents, states)
-                sim_df = pd.DataFrame(simulation_results)
-                sim_df_exp = sim_df.apply(pd.Series.explode).reset_index()
-                sim_df_exp.drop('index', axis=1, inplace=True)
-                sim_df_exp['alpha'] = alpha
-                sim_df_exp['Network_Param'] = i
-                sim_df_exp['Experiment_Num'] = exp
-                all_sim_results.append(sim_df_exp)
-                #print(sim_df_exp.tail())
+    for i in network_parameters:
+        print('Network parameter: ', i)
+        print('_'*100)
+        G = nx.watts_strogatz_graph(num_agents, watts_strogatz_graph_param, i, seed=0) # FIX THIS! change rewire parameters as from different starting, 1 means random graph as each node is going to rewired and no structure is saved
+        for attrctr_i in range(len(attractors_dict_lst)):
+            coh = create_attractors(attractors_dict_lst[:attrctr_i+1]) # increase one attractor to more in iterations
+            for alpha in alphas:
+                for exp in range(num_experiments): # for replications iterating through numbers
+                    agents, states = setup_environment(G,coh,bit_mat,alpha)
+                    random.shuffle(states) # randomly shuffling states for each replication experiment number
+                    simulation_results = run_simulation(end_simulation_time, agents, states)
+                    sim_df = pd.DataFrame(simulation_results)
+                    sim_df_exp = sim_df.apply(pd.Series.explode).reset_index()
+                    sim_df_exp.drop('index', axis=1, inplace=True)
+                    sim_df_exp['alpha'] = alpha
+                    sim_df_exp['Network_Param'] = i
+                    sim_df_exp['Experiment_Num'] = exp
+                    sim_df_exp['Number_of_Attractors'] = attrctr_i+1
+                    all_sim_results.append(sim_df_exp)
+                    #print(sim_df_exp.tail())
     #print('='*100)
     all_sim_combined = pd.concat(all_sim_results)
     all_sim_combined.to_csv('../../sim_results.csv', index=False)
