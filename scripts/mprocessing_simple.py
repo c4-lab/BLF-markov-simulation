@@ -220,8 +220,9 @@ def doit():
     print('-'*100)
     print('Running experiments ............ ')
     start = time.time()
-    all_sim_results = []
+    
     for i in network_parameters:
+        all_sim_results = []
         print('Network parameter: ', i)
         print('_'*100)
         G = nx.watts_strogatz_graph(num_agents, watts_strogatz_graph_param, i, seed=0) # FIX THIS! change rewire parameters as from different starting, 1 means random graph as each node is going to rewired and no structure is saved
@@ -241,9 +242,9 @@ def doit():
                     sim_df_exp['Number_of_Attractors'] = attrctr_i+1
                     all_sim_results.append(sim_df_exp)
                     #print(sim_df_exp.tail())
-    #print('='*100)
-    all_sim_combined = pd.concat(all_sim_results)
-    all_sim_combined.to_csv('../../sim_results.csv', index=False)
+        #print('='*100)
+        all_sim_combined = pd.concat(all_sim_results)
+        all_sim_combined.to_csv('../../sim_results_network_param_{}.csv'.format(i), index=False)
     end = time.time()
     print('> Experiment completed in {} minutes.'.format((end-start)/60.0))
 
