@@ -29,7 +29,7 @@ tau_n_samples = 1000
 # pool_param = 1
 
 # network x parameter
-watts_strogatz_graph_param = 10
+watts_strogatz_graph_param = 5
 
 sim_network_params_lst = np.linspace(0, 1, 11)
 end_sim_time = 10 # <--- changed
