@@ -244,7 +244,8 @@ def doit():
                     #print(sim_df_exp.tail())
         #print('='*100)
         all_sim_combined = pd.concat(all_sim_results)
-        all_sim_combined.to_csv('../../sim_results_network_param_{}.csv'.format(i), index=False)
+        # Niraj - see here: https://cmdlinetips.com/2020/05/how-to-save-pandas-dataframe-as-gzip-zip-file/
+        all_sim_combined.to_csv('../../sim_results_network_param_{}.csv.zip'.format(i), index=False,compression="zip")
     end = time.time()
     print('> Experiment completed in {} minutes.'.format((end-start)/60.0))
 
