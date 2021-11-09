@@ -1,8 +1,8 @@
 import numpy as np
 
 # constants for creating coherence matrix
-number_of_bits = 4 # setting for number of bits <--- changed
-num_agents = 10   # setting for number of agents <--- changed
+number_of_bits = 10 # setting for number of bits <--- changed
+num_agents = 1024   # setting for number of agents <--- changed
 
 # attractors description
 
@@ -35,7 +35,7 @@ sim_network_params_lst = np.linspace(0, 1, 11)
 end_sim_time = 10 # <--- changed
 alpha_range = np.log10(np.array(range(1,21)))/np.log10(20) #np.linspace(0, 1, 11)
 
-num_experiments = 3 # <--- changed
+num_experiments = 1 # <--- changed
 
 seed_val = [0]
 coh_mat_min_value = 0.5

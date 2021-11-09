@@ -7,7 +7,8 @@ import const
 import random
 import networkx as nx
 # all parameters imported from the config file
-from config import number_of_bits, num_agents, tau_lower_bound, tau_upper_bound, tau_mu, tau_sigma, tau_n_samples, watts_strogatz_graph_param,sim_network_params_lst, end_sim_time, alpha_range, num_experiments, attrctr_min_depth, attrctr_max_depth, attrctr_min_radius, attrctr_max_radius, attractors_dict_lst
+import config
+#from config import number_of_bits, num_agents, tau_lower_bound, tau_upper_bound, tau_mu, tau_sigma, tau_n_samples, watts_strogatz_graph_param,sim_network_params_lst, end_sim_time, alpha_range, num_experiments, attrctr_min_depth, attrctr_max_depth, attrctr_min_radius, attrctr_max_radius, attractors_dict_lst
 from scipy import stats
 import analysis
 import time
@@ -15,6 +16,7 @@ import utilities
 import os
 
 import pandas as pd
+import transition_matrices
 from collections import defaultdict
 
 shrd_static = {
@@ -30,11 +32,11 @@ exp_number = 0
 
 def get_tau_distr():
 
-    lower = tau_lower_bound
-    upper = tau_upper_bound
-    mu = tau_mu
-    sigma = tau_sigma
-    N = tau_n_samples
+    lower = config.tau_lower_bound
+    upper = config.tau_upper_bound
+    mu = config.tau_mu
+    sigma = config.tau_sigma
+    N = config.tau_n_samples
 
     samples = stats.truncnorm.rvs(
           (lower-mu)/sigma,(upper-mu)/sigma,loc=mu,scale=sigma,size=N)
@@ -72,7 +74,7 @@ class Agent:
 
         # get the corresponding probabilites from the matrix
         coh_prob_tx = txn[row_ptr]
-        ones_list = np.zeros(number_of_bits)
+        ones_list = np.zeros(config.number_of_bits)
 
 
         for kbit, curr_bit_state in enumerate(kstate):
@@ -103,7 +105,7 @@ class Agent:
         #TODO logs soc_prob_tx for each agent at each time step
 
         probs = alpha * soc_prob_tx + (1-alpha)*coh_prob_tx
-        return utilities.int2bool(np.random.choice(range(2**number_of_bits),1,p=probs)[0],number_of_bits)
+        return utilities.int2bool(np.random.choice(range(2**config.number_of_bits),1,p=probs)[0],config.number_of_bits)
 
 
 
@@ -132,8 +134,8 @@ def setup_environment(network:nx.Graph, coherence, bit_mat, alpha):
     values = list(range(coherence.shape[0]))
     random.shuffle(values)
     states = []
-    for i in range(num_agents):
-        states.append(utilities.int2bool(values[i % len(values)],number_of_bits))
+    for i in range(config.num_agents):
+        states.append(utilities.int2bool(values[i % len(values)],config.number_of_bits))
 
     return list_agents, states
 
@@ -175,40 +177,19 @@ def chunks(lst, n):
         result[i % n].append(agent)
     return result
 
-def create_attractors(attractors_dict_list={}):
-    if len(attractors_dict_list)==0:
-        attrctr1 = utilities.bool2int(1 for _ in range(number_of_bits))
-        attrctr2 = utilities.bool2int(0 for _ in range(number_of_bits))
+def create_attractors():
+    #TODO: Make this follow an experimental configuration
+    return transition_matrices.buildIsingBasedCoherenceMatrix(config.number_of_bits)
 
-        attrctrs = [attrctr1, attrctr2]
-    
-        for index, val in enumerate(attrctrs):
-            attractor_state = attrctrs[index]
-            attractor_depth = random.randint(attrctr_min_depth, attrctr_max_depth) # depth for each attractors is picked randomly
-            attractor_radius = random.randint(attrctr_min_radius, attrctr_max_radius)
-
-            attractors[attractor_state] = {'depth': attractor_depth, 'radius': attractor_radius}
-
-            #TODO: Fix this with dynamic rather than static attractor depth and radius
-            attrctrs_1 = [[k, 100, 1] for k,v in attractors.items()]
-
-    else:
-        attrctrs_1 = [[att['state'], att['depth'], att['radius']] for att in attractors_dict_list]
-
-
-    attrctr, coherence_mat = analysis.init_coherence_matrix(number_of_bits, attrctrs_1, 3)
-
-    return coherence_mat
-
-def doit():
+def runExperiment():
      # setting two attractors with one having all zeros and other with all ones
 
 
-    network_parameters = sim_network_params_lst
-    end_simulation_time = end_sim_time
+    network_parameters = config.sim_network_params_lst
+    end_simulation_time = config.end_sim_time
 
     #alphas = np.arange(0, 1, 0.1).round(2)
-    alphas = alpha_range
+    alphas = config.alpha_range
     constants = const.Constants()
 
     bit_mat = constants.get_bit_matrix()
@@ -216,7 +197,7 @@ def doit():
 
     ray.init()
     print('-'*100)
-    print('Number of agents is: {} and number of bits is: {}'.format(num_agents, number_of_bits))
+    print('Number of agents is: {} and number of bits is: {}'.format(config.num_agents, config.number_of_bits))
     print('-'*100)
     print('Running experiments ............ ')
     start = time.time()
@@ -225,7 +206,7 @@ def doit():
         all_sim_results = []
         print('Network parameter: ', i)
         print('_'*100)
-        G = nx.watts_strogatz_graph(num_agents, watts_strogatz_graph_param, i, seed=0) # FIX THIS! change rewire parameters as from different starting, 1 means random graph as each node is going to rewired and no structure is saved
+        G = nx.watts_strogatz_graph(config.num_agents, config.watts_strogatz_graph_param, i, seed=0) # FIX THIS! change rewire parameters as from different starting, 1 means random graph as each node is going to rewired and no structure is saved
         for attrctr_i in range(len(attractors_dict_lst)):
             coh = create_attractors(attractors_dict_lst[:attrctr_i+1]) # increase one attractor to more in iterations
             for alpha in alphas:
@@ -245,7 +226,7 @@ def doit():
         #print('='*100)
         all_sim_combined = pd.concat(all_sim_results)
         # Niraj - see here: https://cmdlinetips.com/2020/05/how-to-save-pandas-dataframe-as-gzip-zip-file/
-        all_sim_combined.to_csv('../../sim_results_network_param_{}.csv.zip'.format(i), index=False,compression="zip")
+        all_sim_combined.to_csv('../../reboot_sim_results_network_param_{}.csv.zip'.format(i), index=False,compression="zip")
     end = time.time()
     print('> Experiment completed in {} minutes.'.format((end-start)/60.0))
 
