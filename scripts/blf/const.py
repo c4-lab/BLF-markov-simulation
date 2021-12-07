@@ -3,7 +3,6 @@ import scipy.stats as stats
 import scipy.spatial.distance as distance
 import random
 
-import config
 import utilities
 
 class Constants:
@@ -11,13 +10,13 @@ class Constants:
 
 
 
-    def __init__(self):
+    def __init__(self,config):
         
-        np.random.seed(seed=config.seed_val[0])
-        random.seed(config.seed_val[0])
+        np.random.seed(seed=config.seed_val)
+        random.seed(config.seed_val)
 
         self.bit_matrix = self.__set_bit_matrix(config.number_of_bits)
-
+        self.hamming_matrix = self.__set_hamming_matrix(config.number_of_bits)
 
 
 
@@ -27,9 +26,14 @@ class Constants:
             m[r_index] = utilities.int2bool(r_index,k)
         return m
 
+    def __set_hamming_matrix(self,k):
+        inertia_matrix = np.zeros((2**k,2**k))
+        for row_st, row in enumerate(inertia_matrix):
+            for col_st, col in enumerate(row):
+                bits_difference = utilities.hamming(row_st, col_st)
+                inertia_matrix[row_st, col_st] = k - bits_difference
+        return inertia_matrix
 
-    def get_coh_tx_matrix(self):
-        return self.coh_transition_matrix
 
     def get_bit_matrix(self):
         return self.bit_matrix

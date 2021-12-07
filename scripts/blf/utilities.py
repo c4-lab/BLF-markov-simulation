@@ -1,6 +1,8 @@
 import math
 import numpy as np
-from scipy.stats import pearsonr
+from scipy import stats
+import os
+#from scipy.stats import pearsonr
 
 def bool2int(x):
     """function for binary to decimal
@@ -25,11 +27,15 @@ def sigmoid(x, x_0, k=8):
 def hamming(a,b):
     return(bin(a^b).count("1"))
 
+def closest_state(probe,targets:list):
+    val = min(targets,key=lambda x: hamming(probe,x))
+    return (val,hamming(val,probe))
+
 
 def measure_landscape_complexity(attractor_matrix):
     # Jones & Forrest 1995
     diag = attractor_matrix.diagonal()
-    best_val = min(diag)
+    best_val = max(diag)
     global_attractors = [i for i, v in enumerate(diag) if v == best_val]
 
     f = []
@@ -39,10 +45,19 @@ def measure_landscape_complexity(attractor_matrix):
             continue
         f.append(j)
         d.append(min([hamming(i,g) for g in global_attractors]))
+    r = stats.pearsonr(f,d)
+    complexity = (-r[0] + 1) / 2
+    result = (complexity,r[1])
 
-    return f,d,pearsonr(f,d)
+    return f,d,global_attractors,result
 
 
+def write_zip(df,path,fname):
+    if not os.path.isdir(path):
+        os.makedirs(path)
+    compression_options = {"method": "zip", "archive_name": f"{fname}.csv"}
+    output_path = os.path.join(path,f"{fname}.zip")
+    df.to_csv(output_path,compression=compression_options,index=False)
 
 def normalize_rows(m,noise=.001):
     # Normalizes the cells in each row of a matrix to the total
@@ -55,3 +70,9 @@ def normalize_rows(m,noise=.001):
         for j, col in enumerate(row):
             m[i][j] = m[i][j]/summing
 
+def get_tau_distr(upper,lower,mu,sigma,nsamples):
+
+    samples = stats.truncnorm.rvs(
+        (lower-mu)/sigma,(upper-mu)/sigma,loc=mu,scale=sigma,size=nsamples)
+
+    return samples
