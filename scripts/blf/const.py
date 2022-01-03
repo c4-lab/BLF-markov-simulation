@@ -3,7 +3,7 @@ import scipy.stats as stats
 import scipy.spatial.distance as distance
 import random
 
-import utilities
+from blf import utilities
 
 class Constants:
 
