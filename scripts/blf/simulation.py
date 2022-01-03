@@ -8,7 +8,6 @@ import networkx as nx
 # all parameters imported from the config file
 from blf import config
 #from config import number_of_bits, num_agents, tau_lower_bound, tau_upper_bound, tau_mu, tau_sigma, tau_n_samples, watts_strogatz_graph_param,sim_network_params_lst, end_sim_time, alpha_range, num_experiments, attrctr_min_depth, attrctr_max_depth, attrctr_min_radius, attrctr_max_radius, attractors_dict_lst
-from scipy import stats
 
 import time
 from blf import utilities, const
@@ -18,7 +17,6 @@ import re
 
 
 import pandas as pd
-import transition_matrices
 from collections import defaultdict
 
 shrd_static = {

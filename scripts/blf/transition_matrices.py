@@ -1,11 +1,9 @@
 import networkx as nx
-import pandas as pd
 import numpy as np
 from blf.utilities import hamming, normalize_rows, hamming_neighbors, truncnorm, get_global_attractors, scale
-from random import random as rnd
+
 import random
 from sklearn.preprocessing import normalize
-from scipy.special import softmax
 import functools
 import math
 
