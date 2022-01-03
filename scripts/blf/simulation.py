@@ -42,14 +42,14 @@ global constants
 
 class Agent:
 
-    def __init__(self, idx, number_of_bits, tau_fx, search_mask, tau=-1, alpha = .5):
+    def __init__(self, idx, number_of_bits, tau_fx, tau=-1, alpha = .5):
         self.idx = idx
         self.neighbors = set() # neighbors are a list a of indices of other agents
         self.tau = tau # agent's threshold defined in initialization
         self.number_of_bits = number_of_bits
         self.alpha = alpha
         self.tau_fx = tau_fx
-        self.search_mask = search_mask
+        #self.search_mask = search_mask
 
     def add_neighbor_indices(self, neighbors):
         """add neigbhor agent to the list of neighbor indices"""
@@ -106,9 +106,9 @@ class Agent:
         #TODO logs soc_prob_tx for each agent at each time step
 
         probs = self.alpha * soc_prob_tx + (1-self.alpha)*coh_prob_tx
-        probs[probs == 0] = min(probs[probs > 0])
+        #probs[probs == 0] = min(probs[probs > 0])
 
-        probs = utilities.softmax(self.search_mask * probs)
+        #probs = utilities.softmax(self.search_mask * probs)
         return utilities.int2bool(np.random.choice(range(2**self.number_of_bits),1,p=probs)[0],self.number_of_bits)
 
 
@@ -210,7 +210,9 @@ def runExperiment(config: config.Config, stub, outdir):
         #  0 - non-global states, 1 - energy, 2 - globals, 3 - correlation (R,pval)
         surface_inspection = utilities.measure_landscape_complexity(config.tx_matrix)
         #print(f"Landscape complexity = {surface_inspection[3]}")
+        print("Start sim")
         simulation_results = run_simulation(config.number_of_steps, agents, states)
+        print("Stop sim")
         sim_df = pd.DataFrame(simulation_results)
         sim_df_exp = sim_df.apply(pd.Series.explode).reset_index()
         sim_df_exp.drop('index', axis=1, inplace=True)
