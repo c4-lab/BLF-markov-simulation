@@ -158,6 +158,7 @@ def run_simulation(end_time, agents, states):
     sim_result_lst = []
 
     ncores = os.cpu_count()
+    print(f"My core count is {ncores}")
 
 
     for t in range(end_time):
