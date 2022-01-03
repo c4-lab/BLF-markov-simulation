@@ -1,10 +1,10 @@
 import numpy as np
 import networkx as nx
 import configparser
-import transition_matrices as tx
+import blf.transition_matrices as tx
 import re
 import sys
-import utilities
+from blf import utilities
 import sklearn
 from scipy.stats import truncnorm
 import math
