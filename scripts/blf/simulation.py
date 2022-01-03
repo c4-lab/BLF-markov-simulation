@@ -42,13 +42,14 @@ global constants
 
 class Agent:
 
-    def __init__(self, idx, number_of_bits, tau_fx, tau=-1, alpha = .5):
+    def __init__(self, idx, number_of_bits, tau_fx, search_mask, tau=-1, alpha = .5):
         self.idx = idx
         self.neighbors = set() # neighbors are a list a of indices of other agents
         self.tau = tau # agent's threshold defined in initialization
         self.number_of_bits = number_of_bits
         self.alpha = alpha
         self.tau_fx = tau_fx
+        self.search_mask = search_mask
 
     def add_neighbor_indices(self, neighbors):
         """add neigbhor agent to the list of neighbor indices"""
@@ -72,6 +73,8 @@ class Agent:
 
         # get the corresponding probabilites from the matrix
         coh_prob_tx = txn[row_ptr]
+
+
         ones_list = np.zeros(self.number_of_bits)
 
         for kbit, curr_bit_state in enumerate(kstate):
@@ -103,6 +106,9 @@ class Agent:
         #TODO logs soc_prob_tx for each agent at each time step
 
         probs = self.alpha * soc_prob_tx + (1-self.alpha)*coh_prob_tx
+        probs[probs == 0] = min(probs[probs > 0])
+
+        probs = utilities.softmax(self.search_mask * probs)
         return utilities.int2bool(np.random.choice(range(2**self.number_of_bits),1,p=probs)[0],self.number_of_bits)
 
 
@@ -203,7 +209,7 @@ def runExperiment(config: config.Config, stub, outdir):
 
         #  0 - non-global states, 1 - energy, 2 - globals, 3 - correlation (R,pval)
         surface_inspection = utilities.measure_landscape_complexity(config.tx_matrix)
-        print(f"Landscape complexity = {surface_inspection[3][0]}")
+        #print(f"Landscape complexity = {surface_inspection[3]}")
         simulation_results = run_simulation(config.number_of_steps, agents, states)
         sim_df = pd.DataFrame(simulation_results)
         sim_df_exp = sim_df.apply(pd.Series.explode).reset_index()
@@ -226,7 +232,9 @@ def runExperiment(config: config.Config, stub, outdir):
 
         run_params = config.collect_parameters()
         run_params["run_id"] = config.get_run_id()
-        run_params["complexity"] = surface_inspection[3][0]
+        run_params["complexity"] = surface_inspection[3]
+        run_params["search_difficulty"] = utilities.search_complexity(config.tx_matrix)
+        run_params["empirical_complexity"] = utilities.empirical_complexity(config.tx_matrix)
         run_params["globals"] = ";".join([str(x) for x in surface_inspection[2]])
         sim_parameters.append(run_params)
 

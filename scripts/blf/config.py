@@ -8,6 +8,7 @@ import utilities
 import sklearn
 from scipy.stats import truncnorm
 import math
+import random
 
 
 def cast_param(val):
@@ -200,13 +201,33 @@ class Config:
             sys.exit(-1)
 
     def prepare_tx_matrix(self,param_map):
+
         if param_map["type"] == "random-ising":
             return tx.buildRandomIsingBasedTransitionMatrix(self.number_of_bits, param_map["pneg"], param_map['width'])
         elif param_map["type"] == "ising-trial":
             return tx.trial1IsingMatrix(self.number_of_bits, param_map["pzero"])
         elif param_map["type"] == "manual":
             nattractors = int(param_map['num_attractors'])
-            return tx.trial1ManualMatrix(self.number_of_bits, param_map["attractors"][:nattractors])
+            attractors = [(x[0],x[1],param_map['attractor_width']) for x in param_map["attractors"][:nattractors]]
+            return tx.build_manual_transition_matrix(self.number_of_bits,attractors,param_map["search_width"])
+        elif param_map['type'] == "manual_sweep":
+            attractors = param_map['attractors']
+            attractors = [(x[0],x[1],int(param_map['attractor_width'])) for x in attractors]
+            a = tx.build_manual_transition_matrix(self.number_of_bits,attractors,int(param_map['search_width']))
+            return a
+        elif param_map['type'] == "loadable":
+            m = np.load(param_map['filename'])
+            return tx.amplify(m,param_map["amplification"])
+        elif param_map['type'] == "hamming_sweep":
+            attractors = param_map['attractors']
+            h = tx.build_scaled_hamming_distance_matrix(8, 4)
+            m = tx.generate_tuned_surface(self.number_of_bits,attractors)
+            tmp = h*m
+            for i,x in enumerate(np.sum(tmp,axis=1)):
+                if x == 0:
+                    tmp[i] = h[i]
+            result = tx.amplify(tmp,1)
+            return result
         else:
             print("Transition matrix type {} is unsupported",param_map["type"])
             sys.exit(-1)
@@ -269,8 +290,9 @@ class Config:
     def step(self):
         if not self._initialized:
             self.init()
+            self._replication_counter+=1
         else:
-            if self._replication_counter > self._replications:
+            if self._replication_counter >= self._replications:
                 self._replication_counter = 0
                 for i,p in enumerate(reversed(self._nesting)):
                     if type(p) is list:
