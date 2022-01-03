@@ -3,7 +3,6 @@
 #from __future__ import annotations
 import numpy as np
 import ray
-import const
 import random
 import networkx as nx
 # all parameters imported from the config file
@@ -12,7 +11,7 @@ from blf import config
 from scipy import stats
 import analysis
 import time
-from blf import utilities
+from blf import utilities, const
 import os
 import argparse
 import re
