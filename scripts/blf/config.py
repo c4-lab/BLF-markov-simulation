@@ -208,7 +208,7 @@ class Config:
             return tx.trial1IsingMatrix(self.number_of_bits, param_map["pzero"])
         elif param_map["type"] == "manual":
             nattractors = int(param_map['num_attractors'])
-            attractors = [(x[0],x[1],param_map['attractor_width']) for x in param_map["attractors"][:nattractors]]
+            attractors = [(x[0],x[1],int(param_map['attractor_width'])) for x in param_map["attractors"][:nattractors]]
             ap = tx.build_attractor_profile(self.number_of_bits,attractors)
             return tx.build_manual_transition_matrix(self.number_of_bits,ap,search_width = param_map["search_width"])
         elif param_map['type'] == "loadable":
