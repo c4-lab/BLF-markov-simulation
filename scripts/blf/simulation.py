@@ -158,7 +158,7 @@ def run_simulation(end_time, agents, states):
     sim_result_lst = []
 
     ncores = os.cpu_count()
-    print(f"My core count is {ncores}")
+    #print(f"My core count is {ncores}")
 
 
     for t in range(end_time):
@@ -208,9 +208,9 @@ def runExperiment(config: config.Config, stub, outdir):
         #  0 - non-global states, 1 - energy, 2 - globals, 3 - correlation (R,pval)
         surface_inspection = utilities.measure_landscape_complexity(config.tx_matrix)
         #print(f"Landscape complexity = {surface_inspection[3]}")
-        print("Start sim")
+        #print("Start sim")
         simulation_results = run_simulation(config.number_of_steps, agents, states)
-        print("Stop sim")
+       # print("Stop sim")
         sim_df = pd.DataFrame(simulation_results)
         sim_df_exp = sim_df.apply(pd.Series.explode).reset_index()
         sim_df_exp.drop('index', axis=1, inplace=True)

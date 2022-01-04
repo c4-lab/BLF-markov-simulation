@@ -264,7 +264,7 @@ class Config:
                 x.export(self._round_settings)
 
     def prepare_round(self):
-        print("Start prepare round")
+        #print("Start prepare round")
         for x in self._params.values():
             x.export(self._round_settings)
 
@@ -272,7 +272,7 @@ class Config:
         self._round_settings['tx_matrix']['_object'] = self.prepare_tx_matrix(self._round_settings["tx_matrix"])
         self._round_settings['tau']['_object'] = self.prepare_tau(self._round_settings["tau"])
         self._round_settings['alpha']['_object'] = self.prepare_alpha(self._round_settings["alpha"])
-        print("Stop prepare round")
+        #print("Stop prepare round")
 
     def init(self):
         for p in self._params.values():
