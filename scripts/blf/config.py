@@ -207,9 +207,12 @@ class Config:
         elif param_map["type"] == "ising-trial":
             return tx.trial1IsingMatrix(self.number_of_bits, param_map["pzero"])
         elif param_map["type"] == "manual":
-            nattractors = int(param_map['num_attractors'])
-            attractors = [(x[0],x[1],int(param_map['attractor_width'])) for x in param_map["attractors"][:nattractors]]
-            ap = tx.build_attractor_profile(self.number_of_bits,attractors)
+            attractors = param_map["attractors"][:int(param_map['num_attractors'])]
+            aw = int(param_map['attractor_width'])
+            lad = int(param_map['local_depth'])
+            ga = (attractors[0][0],attractors[0][1],aw)
+            la = [(x[0],lad,aw) for x in attractors[1:]]
+            ap = tx.build_attractor_profile(self.number_of_bits,[ga]+la)
             return tx.build_manual_transition_matrix(self.number_of_bits,ap,search_width = param_map["search_width"])
         elif param_map['type'] == "loadable":
             m = np.load(param_map['filename'])

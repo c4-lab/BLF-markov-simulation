@@ -194,6 +194,7 @@ def runExperiment(config: config.Config, stub, outdir):
 
     constants = const.Constants(config)
     bit_mat = constants.get_bit_matrix()
+    #ray.init(num_cpus=16, num_gpus=2)
     ray.init()
     print('Running experiments ............ ')
     start = time.time()
